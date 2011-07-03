@@ -23,21 +23,21 @@ class Match:
         
         By default, perform manyToMany match, unless option parameter given.  
 
-        hashes contains a function or group of functions that, given an el of a seq, return a hash value of that el to identify equivalence with another element.  Use each hash in hashes to pair the elements in seq1 with element(s) in seq2.  
+        hashes contains a function or group of functions that, given an el and seq, return a hash value of that el to identify equivalence with another element.  Use each hash in hashes to pair the elements in seq1 with element(s) in seq2.  
 
         Two example hashes tuples:
-            (lambda x: x % 2 == 0, #1st, pair all numbers divisible by 2
-             lambda x: x%3 == 0 #2nd, pair all remaining numbers divisible by 3
+            (lambda x,seq: x % 2 == 0, #1st, pair all numbers on whether they are divisible by 2.  Doesn't do anything with seq.
+             lambda x,seq: x%3 == 0, #2nd, pair all remaining numbers on whether divisible by 3
+             lambda x,seq: seq[seq.index(x)+1] #3rd, pair all elements on index of first occurrence of given el in seq
              )
              
-            (lambda x: tuple(y for y in x.somemethod()),)
+            (lambda x, seq: tuple(y for y in x.somemethod()),)
         """
         matches = []
         for hash_ in hashes:
             #Run algorithm with given hash
             matches.extend(self.manyToManyMatch(seq1, seq2, hash_, **option)
-                           )
-            
+                           )            
             #Find remaining children and ensure no duplicates
             seq1, seq2 = self.getUnmatched(seq1, seq2, matches)
         return matches, seq1, seq2
@@ -58,7 +58,7 @@ class Match:
         #add values to dict
         for i,seq in enumerate((seq1, seq2)):
             for el in seq:
-                h = hash_(el)
+                h = hash_(el, seq)
                 if oneToOne or manyToOne and i==1:
                     if h in skip_list: 
                         continue
@@ -125,7 +125,7 @@ class TestMatch:
         #expected input
         seq1 = self.seq1
         seq2 = self.seq2
-        hashes = (lambda x: x,)
+        hashes = (lambda x, none: x,)
 
         #run test
         d = Match()
@@ -173,8 +173,8 @@ class TestMatch:
         self.testRun(aa,bb,cc, 'manyToMany')
 
     def testHashes(self):
-        hashes = (lambda x:x,
-                  lambda x:int(x)/7==0 and 1
+        hashes = (lambda x, none:x,
+                  lambda x, none:int(x)/7==0 and 1
                   )
         d = Match()
         a,b,c = d.run(self.seq1, self.seq2, hashes)
