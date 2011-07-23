@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import sys
 import hashlib
 from multiprocessing import Pool
