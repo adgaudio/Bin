@@ -4,66 +4,99 @@ import subprocess
 import sys, os
 import datetime
 
+class BashWrapper(object):
+    """Wrap a simple bash script to provide:
+           1. Workflow: By default, stop execution if stderr is returned
+           2. Logging: Specify an object with a write method 
+              (like sys.stdout, or an open file)
 
-def getEnv(string, delimiter='\n', subdelimiter='='):
-    """Given string and delimiters, 
-    parse values by delimeter and return dict"""
-    d = {}
-    for pair in string.split(delimiter):
-        pair = pair.strip()
+       Gotchas: script can't have code blocks (if, for, while, etc), 
+                but it can use variables
+    """
+    def __init__(self):
+        pass
+        
+    def split2dict(self, string, delimiter='\n', subdelimiter='='):
+        """Given string (of bash env vars) and delimiters, 
+        parse values by delimeter and return dict"""
+        d = {}
+        for pair in string.split(delimiter):
+            pair = pair.strip()
 
-        if pair == '':     continue
-        if subdelimiter not in pair:
-            print 'skipping'
-            continue
+            if pair == '':     continue
+            if subdelimiter not in pair:
+                print 'WARNING: skipping env variable:', pair
+                continue
 
-        k,v = pair.split(subdelimiter, 1)
-        d[k] = str(v)
-    return d
+            k,v = pair.split(subdelimiter, 1)
+            d[k] = str(v)
+        return d
 
+    def wrap(self, bashfile, writer=sys.stdout): 
 
+        f = open(bashfile, 'r').readlines()
+        env = os.environ.copy()
 
-# Establish vars
-f = open(sys.argv[1], 'r').readlines()
-if len(sys.argv) == 3:
-    log_summary = open(sys.argv[2], 'w')
-    log_expanded = open(sys.argv[3], 'w')
-else:
-    log_summary = sys.stdout
-    class NullOut: write=lambda *x:None
-    log_expanded = NullOut()
-lastenv = os.environ.copy()
-marker = "____BASHWRAPPER_SPLITONTHIS____"
-    
-# Run commands
-for cmd in f: 
-    if cmd == '' or cmd.startswith('#'): continue 
-    cmd = cmd.strip() + "; echo %s ; set" % marker 
-    msg = """
-=====================================
-CMD: %s
-TIME: %s
-=====================================
-"""
-    msg = msg % (cmd.strip(), datetime.datetime.now().isoformat()) 
+        # If no output wanted at all
+        class NullOut: write=lambda *x:None
+        if not writer:
+            writer = NullOut()
 
-    log_summary.write(msg)
-    log_expanded.write(msg)
-    
-    shell = subprocess.Popen(cmd, 
-                             shell=True, 
-                             stdout=subprocess.PIPE, 
-                             stderr=subprocess.PIPE,
-                             stdin=subprocess.PIPE,
-                             env=lastenv)
-    result = shell.communicate()
-    output = result[0].split(marker, 1)
+        # Run commands
+        for cmd in f: 
+            if cmd == '' or cmd.startswith('#'): continue
+            
+            timestart, timeend, stdout, env = \
+                self.execute(cmd, env, writer)
+            
+            writer.write(self.report(cmd, timestart, timeend, stdout))
 
-    if result[1] != '':
-        msg2 =('\n---STDOUT:%s\n---STDERR:%s' % (str(output[0]), str(result[1]))) 
-        raise Exception(msg2)
-    lastenv = getEnv(output[1])
-    import pdb ; pdb.set_trace()    
-    log_expanded.write("""
-STDOUT:
-%s""" % output[0])
+    def execute(self, cmd, env, log_writer, stderr_okay=False):
+
+        marker = "____BASHWRAPPER_SPLITONTHIS____"
+        cmd = cmd.strip() + "; echo %s ; set" % marker
+
+        timestart = datetime.datetime.now()
+        shell = subprocess.Popen(cmd, 
+                                 shell=True, 
+                                 stdout=subprocess.PIPE, 
+                                 stderr=subprocess.PIPE,
+                                 stdin=subprocess.PIPE,
+                                 env=env)
+        result = shell.communicate()
+        timeend = datetime.datetime.now()
+        output = result[0].split(marker, 1)
+        
+        if not stderr_okay:
+            if result[1] != '':
+                if len(str(output[0])) > 50:
+                    output[0]='%s...TRUNCATED' % str(
+                        output[0][:50])
+                msg2 =('\n---STDOUT:%s\n---STDERR:%s' % (
+                        str(output[0])[:50], str(result[1]))) 
+                raise Exception(msg2)
+
+        env = self.split2dict(output[1])
+        #hack:
+        del env['SHELLOPTS']
+
+        return (timestart, timeend, output[0], env)
+
+    def report(self, cmd, timestart, timeend, stdout=''):
+        if stdout:
+            stdout = "STDOUT:\n%s" % stdout
+        return  """
+    =====================================
+    CMD: %s
+    TIME STARTED: %s
+    TIME ENDED: %s
+    =====================================
+    %s""" % (cmd.strip(), 
+             timestart,
+             timeend,
+             stdout) 
+        
+if __name__ == '__main__':
+    a = BashWrapper()
+    a.wrap(sys.argv[1])
+    # a.wrap(sys.argv[1], writer=None) #for example
