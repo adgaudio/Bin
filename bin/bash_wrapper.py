@@ -15,7 +15,7 @@ class BashWrapper(object):
     """
     def __init__(self):
         pass
-        
+    
     def split2dict(self, string, delimiter='\n', subdelimiter='='):
         """Given string (of bash env vars) and delimiters, 
         parse values by delimeter and return dict"""
@@ -31,9 +31,9 @@ class BashWrapper(object):
             k,v = pair.split(subdelimiter, 1)
             d[k] = str(v)
         return d
-
+    
     def wrap(self, bashfile, writer=sys.stdout): 
-
+	"""Given filepath to bash script, execute commands and write output"""
         f = open(bashfile, 'r').readlines()
         env = os.environ.copy()
 
@@ -51,8 +51,10 @@ class BashWrapper(object):
             
             writer.write(self.report(cmd, timestart, timeend, stdout))
 
-    def execute(self, cmd, env, log_writer, stderr_okay=False):
-
+    def execute(self, cmd, env, stderr_okay=False):
+	"""Given bash cmd as string and bash environment,
+	   Execute bash cmd and return output, updated env, and start/end time
+	"""
         marker = "____BASHWRAPPER_SPLITONTHIS____"
         cmd = cmd.strip() + "; echo %s ; set" % marker
 
@@ -83,7 +85,8 @@ class BashWrapper(object):
         return (timestart, timeend, output[0], env)
 
     def report(self, cmd, timestart, timeend, stdout=''):
-        if stdout:
+        """Return pretty print version"""
+	if stdout:
             stdout = "STDOUT:\n%s" % stdout
         return  """
     =====================================
