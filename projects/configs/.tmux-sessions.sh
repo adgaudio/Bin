@@ -1,14 +1,10 @@
-
 # Automatically create a new session with these windows
 
-function try-attach 
-{
-    tmux has-session -t $1
-    if [ "$?" -eq 0 ] ; then
-        (tmux attach -t $1)
-    else
-        exit 1
-    fi
+#Register sessions that will be created by this script
+SESSIONS="fwk hi daemons"
+
+function has-session {
+    tmux has-session -t $1 2>/dev/null
 }
 
 function except 
@@ -21,29 +17,72 @@ function except
 function session-fwk 
 {
     tmux new-session -d -s fwk
+    tmux neww -k -t fwk:1
+    tmux neww -k -n sreports -t fwk:2 
+    tmux neww -k -n prod  -t fwk:3 
+    tmux neww -k -n local -t fwk:4 
     
-    new -d -s fwk
-    neww -k -t fwk:1
-    neww -k -t fwk:2 -n sreports -send-keys 'sreports'
-    neww -k -t fwk:3 -n prod -send-keys 'reports'
-    neww -k -t fwk:4 -n local
+    tmux send-keys -t fwk:2 'sreports'
+    tmux send-keys -t fwk:3 'reports'
 }
 
 function session-daemons
 {
-    tmux new -d -s daemons
-    neww -k -n manage -t daemons:1 
+    tmux new-session -d -s daemons
+    tmux neww -k -n managepy -t daemons:1 
 }
 
 function session-hi
 {
-    tmux new -d -s 'hi!'
-    tmux neww -k -t hi!:1
+    tmux new-session -d -s hi
+    tmux neww -k -t hi:1
 }
 
-for x in "hi fwk daemons" ; do
-    try-attach $x
+
+
+for x in $SESSIONS
+do
+    echo $x
+    has-session $x
     except session-$x
 done
 
-link-window -dk -s daemons:manage -t hi:0
+
+tmux link-window -dk -s daemons:manage -t hi:0
+
+tmux attach -t hi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function has-sessions {
+    for x in $@ ; do
+	echo $x
+        tmux has-session -t $x
+	rc=$rc+$?
+    return rc
+}
+function try-attach 
+{
+    echo "In Try"
+    tmux has-session -t $1 2>/dev/null
+    rc="$?"
+    if [ "$rc" -eq "0" ] ; then
+        (tmux attach -t $1)
+    else
+        return $rc
+    fi
+}
