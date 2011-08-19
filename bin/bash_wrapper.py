@@ -1,4 +1,8 @@
-#)!/usr/bin/env python
+#!/usr/bin/env python
+
+#
+# By: Alex D. Gaudio   --   www.alexgaudio.com
+#
 
 import subprocess
 import sys, os
@@ -8,14 +12,34 @@ import shlex
 
 from peekable import peekable
 
+colors = {1: '\x1b[1;37m',
+         2: '\x1b[1;36m',#light blue
+         3: '\x1b[1;34m',
+         51: '\x1b[1;33m',
+         52: '\x1b[0;31m',#red
+         53: '\x1b[1;31m',#red bold
+         257: '\x1b[1;32m',
+         258: '\x1b[1;33m',
+         '__allownew': True,
+         'normal': '\x1b[0m'}
+
+
 class BashWrapper(object):
     """Wrap a simple bash script to provide:
-           1. Workflow: By default, stop execution if stderr is returned
+           1. Workflow: If you want, stop execution if stderr is returned
            2. Logging: Specify an object with a write method 
               (like sys.stdout, or an open file)
+           3. Pretty print resulting output
 
-       Gotchas: script can't have code blocks (if, for, while, etc), 
-                but it can use variables
+        Gotchas:
+            1. script can't have code blocks (if, for, while, etc), 
+               but it can use variables.  A work-around until this gets 
+               fixed would be to call a separate file containing the function
+               from the main bash script.
+
+            2. Do you actually need this script? The bash commands 
+               set -o and set -e are also incredibly useful for managing 
+               workflow.  Note: You can use these in tandem with BashWrapper
     """
     def __init__(self):
         pass
@@ -26,7 +50,9 @@ class BashWrapper(object):
         env = os.environ.copy()
 
         # If no output wanted at all
-        class NullOut: write=lambda *x:None
+        class NullOut: 
+            write=lambda *x:None
+            close=lambda *x:None
         if not writer:
             writer = NullOut()
 
@@ -37,6 +63,8 @@ class BashWrapper(object):
             timestart, timeend, stdout, env = \
                     self.execute(cmd, env, 1 if writer else 0)
             writer.write(self.report(cmd2, timestart, timeend, stdout))
+        if writer!=sys.stdout:
+            writer.close()
 
     def execute(self, cmd, env, stderr_okay=False):
         """Given bash cmd as string and bash environment,
@@ -70,29 +98,19 @@ class BashWrapper(object):
         env = self.split2dict(env_)
         return (timestart, timeend, stdout, env)
 
-    def report(self, cmd, timestart, timeend, stdout=''):
+    def report(self, cmd, timestart, timeend, stdout):
         """Return pretty print version"""
         if stdout:
             stdout = "STDOUT:\n%s" % ''.join(stdout)
-        
-        colors = {1: '\x1b[1;37m',
-         2: '\x1b[1;36m',
-         3: '\x1b[1;34m',
-         51: '\x1b[1;33m',
-         52: '\x1b[0;31m',
-         53: '\x1b[1;31m',
-         257: '\x1b[1;32m',
-         258: '\x1b[1;33m',
-         '__allownew': True,
-         'normal': '\x1b[0m'}
-
+        else: stdout = "<no stdout>"
         return  """
     %s=====================================
     CMD: %s
     TIME STARTED: %s
     TIME ENDED: %s
     =====================================
-    %s%s""" % (colors[2], cmd,
+    %s%s
+""" % (colors[2], cmd,
              timestart,
              timeend, colors['normal'],
              stdout) 
@@ -103,7 +121,6 @@ class BashWrapper(object):
     ######
     def parseFile(self, f, get_funcs=False):
         cmds, funcs = self.strip_bash_funcs(f)
-        print cmds
         g = []
         f_ = iter(f)
         for cmd in f_: 
@@ -113,7 +130,6 @@ class BashWrapper(object):
             try:
                 cmd = list(lex)
             except ValueError, e:
-                print 'raising'
                 if e.message == 'No closing quotation':
                     cmd = cmd + f_.next()
                     cmd = list(shlex.shlex(cmd))
@@ -145,7 +161,7 @@ class BashWrapper(object):
             # hacks
             if pair == '':     continue
             if delimiter not in pair:
-                print 'WARNING: skipping env variable:', pair
+                print '%sBashWrapper WARNING: skipping env variable:%s' % (colors[53], pair)
                 continue
 
             k,v = pair.split(delimiter, 1)
@@ -171,6 +187,17 @@ class BashWrapper(object):
         return it, funcs
 
 if __name__ == '__main__':  
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+            description='Wraps a bash script in python to provide '
+                        'workflow, logging, and formatted output')
+    parser.add_argument('filename', action="store")
+    parser.add_argument('log_file', action="store", nargs="?", default=sys.stdout)
+
+    c = parser.parse_args(sys.argv[1:])
+    if c.log_file != sys.stdout:
+        c.log_file = open(c.log_file,'w')
     a = BashWrapper()
-    a.wrap(sys.argv[1])
+    a.wrap(c.filename, c.log_file)
     # a.wrap(sys.argv[1], writer=None) #for example
