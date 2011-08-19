@@ -58,6 +58,7 @@ class BashWrapper(object):
         env_ = stdout[i+1:]
         stdout = stdout[:i]
 
+        # Manage workflow: fail if stderr_ok == False
         if not stderr_okay and stderr != []:
             stdout = ''.join(stdout)
             if len(stdout) > 60:
