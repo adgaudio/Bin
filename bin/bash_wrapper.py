@@ -102,10 +102,10 @@ class BashWrapper(object):
     ######
     def parseFile(self, f, get_funcs=False):
         cmds, funcs = self.strip_bash_funcs(f)
+        print cmds
         g = []
         f_ = iter(f)
         for cmd in f_: 
-            print cmd
             lex = shlex.shlex(cmd)
             lex.wordchars = "$ " + lex.wordchars
             lex.whitespace = '\t\r\n'
@@ -113,7 +113,6 @@ class BashWrapper(object):
                 cmd = list(lex)
             except ValueError, e:
                 print 'raising'
-                import pdb ; pdb.set_trace()
                 if e.message == 'No closing quotation':
                     cmd = cmd + f_.next()
                     cmd = list(shlex.shlex(cmd))
@@ -138,10 +137,8 @@ class BashWrapper(object):
         """Given list of bash env vars and a delimiter, 
         parse values by delimeter and return dict"""
         d = {}
-        vars_, funcs = self.parseFile(vars, get_funcs=True)
-
+        #vars, funcs = self.parseFile(vars, get_funcs=True) # todo: bugfix: use parseFile like this to take care of multiline env vars
         vars, funcs = self.strip_bash_funcs(vars)
-
         for pair in vars:
             pair = pair.strip()
             # hacks
@@ -154,7 +151,6 @@ class BashWrapper(object):
             # subprocess escapes quotes unnecessarily
             v = re.sub(r'''['"](.*?)["']''', r'\1' ,v)
             d[k] = v
-        import pdb ; pdb.set_trace()
         return d
     
     def strip_bash_funcs(self, iterable):
