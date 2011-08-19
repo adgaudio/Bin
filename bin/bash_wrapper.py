@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#)!/usr/bin/env python
 
 import subprocess
 import sys, os
@@ -31,22 +31,21 @@ class BashWrapper(object):
             writer = NullOut()
 
         # Run commands
-        for cmd in self.parseFile(f):
+        for cmd,cmd2 in zip(self.parseFile(f), f):
             # Handle empty strings and comments
-            if cmd == []: continue
+            if cmd == '': continue
             timestart, timeend, stdout, env = \
-                    self.execute(cmd[:], env, 1 if writer else 0)
-            writer.write(self.report(cmd, timestart, timeend, stdout))
+                    self.execute(cmd, env, 1 if writer else 0)
+            writer.write(self.report(cmd2, timestart, timeend, stdout))
 
     def execute(self, cmd, env, stderr_okay=False):
         """Given bash cmd as string and bash environment,
         Execute bash cmd and return output, updated env, and start/end time
         """
         marker = "____BASHWRAPPER_SPLITONTHIS____"
-        cmd.extend(list(shlex.shlex(" ; echo %s ; set" % marker)))
+        cmd += " ; echo %s ; set" % marker
         timestart = datetime.datetime.now()
-        print 'CMD:',cmd
-        shell = subprocess.Popen(cmd, 
+        shell = subprocess.Popen(cmd,
                                  shell=True, 
                                  stdout=subprocess.PIPE, 
                                  stderr=subprocess.PIPE,
@@ -55,7 +54,6 @@ class BashWrapper(object):
         stdout = self.save(shell.stdout)
         stderr = self.save(shell.stderr)
         timeend = datetime.datetime.now()
-        print 'STDOUT:',stdout
         i = stdout.index(marker+'\n')
         env_ = stdout[i+1:]
         stdout = stdout[:i]
@@ -102,20 +100,30 @@ class BashWrapper(object):
     ######
     #UTIL FUNCTIONS
     ######
-    def parseFile(self, f):
-        #f = self.strip_comments(f)
+    def parseFile(self, f, get_funcs=False):
         cmds, funcs = self.strip_bash_funcs(f)
         g = []
-        for cmd in f: 
-            cmd = [x.strip() for x in shlex.shlex(cmd)]
-            # strip comments
-            for x in cmd:
-                if x.startswith('#'):
-                    less_comment = cmd.index(x) - 1
-                    cmd = cmd[:less_comment]
-                    break
-            g.append(cmd)
-        return g
+        f_ = iter(f)
+        for cmd in f_: 
+            print cmd
+            lex = shlex.shlex(cmd)
+            lex.wordchars = "$ " + lex.wordchars
+            lex.whitespace = '\t\r\n'
+            try:
+                cmd = list(lex)
+            except ValueError, e:
+                print 'raising'
+                import pdb ; pdb.set_trace()
+                if e.message == 'No closing quotation':
+                    cmd = cmd + f_.next()
+                    cmd = list(shlex.shlex(cmd))
+                else: 
+                    raise
+            g.append(''.join(cmd))
+        if get_funcs:
+            return g, funcs
+        else:
+            return g
 
     def save(self, iterable):
         """Store contents of given iterable, such as a pipe or file"""
@@ -130,6 +138,8 @@ class BashWrapper(object):
         """Given list of bash env vars and a delimiter, 
         parse values by delimeter and return dict"""
         d = {}
+        vars_, funcs = self.parseFile(vars, get_funcs=True)
+
         vars, funcs = self.strip_bash_funcs(vars)
 
         for pair in vars:
@@ -144,6 +154,7 @@ class BashWrapper(object):
             # subprocess escapes quotes unnecessarily
             v = re.sub(r'''['"](.*?)["']''', r'\1' ,v)
             d[k] = v
+        import pdb ; pdb.set_trace()
         return d
     
     def strip_bash_funcs(self, iterable):
@@ -161,11 +172,6 @@ class BashWrapper(object):
                     funcs[-1].append(elt)
             it.append(elt)
         return it, funcs
-
-
-        
-
-
 
 if __name__ == '__main__':  
     a = BashWrapper()

@@ -17,13 +17,13 @@ function except
 function session-fwk 
 {
     tmux new-session -d -s fwk
-    tmux neww -k -t fwk:1
-    tmux neww -k -n sreports -t fwk:2 
-    tmux neww -k -n prod  -t fwk:3 
+    tmux neww -k -n sreports -t fwk:1
+    tmux neww -k -n prod -t fwk:2 
+    tmux neww -k  -t fwk:3 
     tmux neww -k -n local -t fwk:4 
     
-    tmux send-keys -t fwk:2 'sreports'
-    tmux send-keys -t fwk:3 'reports'
+    tmux send-keys -t fwk:1 'sreports'
+    tmux send-keys -t fwk:2 'reports'
 }
 
 function session-daemons
@@ -74,6 +74,7 @@ function has-sessions {
         tmux has-session -t $x
 	rc=$rc+$?
     return rc
+    done
 }
 function try-attach 
 {
