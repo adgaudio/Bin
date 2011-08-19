@@ -37,15 +37,18 @@ class BashWrapper(object):
                fixed would be to call a separate file containing the function
                from the main bash script.
 
-            2. Do you actually need this script? The bash commands 
-               set -o and set -e are also incredibly useful for managing 
-               workflow.  Note: You can use these in tandem with BashWrapper
+            2. The readonly bash env vars, like SHELLOPTS, cannot be changed, 
+               and the value of SHELLOPTS is set at BashWrapper runtime.
+               This "feature/problem" of the subprocess module means the "set" 
+               cmd won't be effectiv.  
+               NOTE: you can use the "set" cmd in scripts the bash script calls
     """
     def __init__(self):
         pass
     
-    def wrap(self, bashfile, writer=sys.stdout): 
-        """Given filepath to bash script, execute commands and write output"""
+    def wrap(self, bashfile, writer=sys.stdout, stderr_okay=False): 
+        """Given filepath to bash script, execute commands and write output.
+        stderr_okay determines whether to raise exception on stderr"""
         f = open(bashfile, 'r').readlines()
         env = os.environ.copy()
 
@@ -57,12 +60,12 @@ class BashWrapper(object):
             writer = NullOut()
 
         # Run commands
-        for cmd,cmd2 in zip(self.parseFile(f), f):
+        for cmd in self.parseFile(f):
             # Handle empty strings and comments
             if cmd == '': continue
             timestart, timeend, stdout, env = \
-                    self.execute(cmd, env, 1 if writer else 0)
-            writer.write(self.report(cmd2, timestart, timeend, stdout))
+                    self.execute(cmd, env, stderr_okay)
+            writer.write(self.report(cmd, timestart, timeend, stdout))
         if writer!=sys.stdout:
             writer.close()
 
@@ -71,7 +74,7 @@ class BashWrapper(object):
         Execute bash cmd and return output, updated env, and start/end time
         """
         marker = "____BASHWRAPPER_SPLITONTHIS____"
-        cmd += " ; echo %s ; set" % marker
+        cmd += " ; echo %s ; set" % (marker)
         timestart = datetime.datetime.now()
         shell = subprocess.Popen(cmd,
                                  shell=True, 
@@ -82,9 +85,6 @@ class BashWrapper(object):
         stdout = self.save(shell.stdout)
         stderr = self.save(shell.stderr)
         timeend = datetime.datetime.now()
-        i = stdout.index(marker+'\n')
-        env_ = stdout[i+1:]
-        stdout = stdout[:i]
 
         # Manage workflow: fail if stderr_ok == False
         if not stderr_okay and stderr != []:
@@ -95,7 +95,12 @@ class BashWrapper(object):
                 cmd, stdout, ''.join(stderr)))
             raise Exception(msg2)
 
+        i = stdout.index(marker+'\n')
+        env_ = stdout[i+1:]
+        stdout = stdout[:i]
         env = self.split2dict(env_)
+        #hack
+        del env['SHELLOPTS'] # shellopts is readonly bash var
         return (timestart, timeend, stdout, env)
 
     def report(self, cmd, timestart, timeend, stdout):
@@ -122,17 +127,22 @@ class BashWrapper(object):
     def parseFile(self, f, get_funcs=False):
         cmds, funcs = self.strip_bash_funcs(f)
         g = []
+        # Strip comments using shlex
         f_ = iter(f)
         for cmd in f_: 
             lex = shlex.shlex(cmd)
+            # hacks: shlex does weird things with quotations and variables
             lex.wordchars = "$ " + lex.wordchars
             lex.whitespace = '\t\r\n'
             try:
                 cmd = list(lex)
             except ValueError, e:
                 if e.message == 'No closing quotation':
-                    cmd = cmd + f_.next()
-                    cmd = list(shlex.shlex(cmd))
+                    try:
+                        cmd = cmd + f_.next()
+                        cmd = list(shlex.shlex(cmd))
+                    except ValueError or StopIteration:
+                        pass # don't use shlex when it fails
                 else: 
                     raise
             g.append(''.join(cmd))
