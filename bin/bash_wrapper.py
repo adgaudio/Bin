@@ -100,7 +100,10 @@ class BashWrapper(object):
         stdout = stdout[:i]
         env = self.split2dict(env_)
         #hack
-        del env['SHELLOPTS'] # shellopts is readonly bash var
+        try:
+            del env['SHELLOPTS'] # shellopts is readonly bash var
+        except KeyError:
+            pass
         return (timestart, timeend, stdout, env)
 
     def report(self, cmd, timestart, timeend, stdout):
@@ -204,8 +207,8 @@ if __name__ == '__main__':
                         'workflow, logging, and formatted output')
     parser.add_argument('filename', action="store")
     parser.add_argument('log_file', action="store", nargs="?", default=sys.stdout)
-
     c = parser.parse_args(sys.argv[1:])
+
     if c.log_file != sys.stdout:
         c.log_file = open(c.log_file,'w')
     a = BashWrapper()
