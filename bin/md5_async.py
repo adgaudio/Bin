@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-
 import sys
 import hashlib
 from multiprocessing import Pool
 
 def md5Checker(args):
-      """Asynchronously calculate md5 sums on a list of elements"""
+      """Asynchronously compare md5 sums of elements in given sequence"""
       pool = Pool()
       hashes = [pool.apply_async(checksum, [x]) for x in args]
       y = hashes[0].get()
@@ -19,13 +18,12 @@ def checksum(f):
       return md5.hexdigest()
 
 def readfiles(args):
-      """Given list of filepaths,
-      return list of strings containing file content"""
+      """Dump contents of given filepaths as list of strings""",
       return [open(a).read() for a in args]
 
 def prettyprint(results):
-      """Given list of (name, value) tuples, 
-      Show name if value equals first tuple"""
+      """Given seq of (name, value) tuples, 
+      Print name if value equals first tuple's value"""
       results = results[1:]
       indexes = [n for n,x in enumerate(results) if x[1]==True]
       

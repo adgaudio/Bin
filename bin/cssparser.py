@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+
+"""Simple util to format css if its hard to read"""
+
 import os, sys
 import re
 from pprint import pprint
@@ -16,7 +19,7 @@ def parse(file):
 
     p = re.compile(r'([,])')
     a = re.sub(p, r'\1\n', a)
-    
+
     q = re.compile(r'([{])')
     a = re.sub(q, r'\n\1\n    ', a)
 
