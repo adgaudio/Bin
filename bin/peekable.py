@@ -1,4 +1,4 @@
-class peekable(object):
+class peekable(tuple):
     """Makes an iterator peekable.  
     
     Adapted from http://code.activestate.com/recipes/499379-groupbysorted/

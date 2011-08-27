@@ -63,9 +63,12 @@ class BashWrapper(object):
         for cmd in self.parseFile(f):
             # Handle empty strings and comments
             if cmd == '': continue
-            timestart, timeend, stdout, env = \
-                    self.execute(cmd, env, stderr_okay)
-            writer.write(self.report(cmd, timestart, timeend, stdout))
+            try:
+              timestart, timeend, stdout, env = \
+                      self.execute(cmd, env, stderr_okay)
+              writer.write(self.report(cmd, timestart, timeend, stdout))
+            finally:
+              writer.flush()
         if writer!=sys.stdout:
             writer.close()
 
@@ -207,10 +210,19 @@ if __name__ == '__main__':
                         'workflow, logging, and formatted output')
     parser.add_argument('filename', action="store")
     parser.add_argument('log_file', action="store", nargs="?", default=sys.stdout)
+    parser.add_argument('--print', action="store_true", default=True)
     c = parser.parse_args(sys.argv[1:])
 
-    if c.log_file != sys.stdout:
-        c.log_file = open(c.log_file,'w')
     a = BashWrapper()
-    a.wrap(c.filename, c.log_file)
+    if c.log_file != sys.stdout:
+        class Writer(file):
+            def __init__(self, fp):
+                super(Writer, self).__init__(fp, 'a')
+                self.stdout = sys.stdout
+                self.stderr = sys.stderr
+                sys.stdout = self
+                sys.stderr = self
+        a.wrap(c.filename, Writer(c.log_file))
+    else:
+        a.wrap(c.filename)
     # a.wrap(sys.argv[1], writer=None) #for example
