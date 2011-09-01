@@ -3,14 +3,30 @@
 #Register sessions that will be created by this script
 SESSIONS="fwk hi daemons"
 
+function try-attach 
+{
+    tmux has-session -t $1 2>/dev/null
+    rc="$?"
+    attached="`tmux list-clients -t $1 2>/dev/null`"
+    
+    if [ "$rc" -eq "0" ] && [ ! "$attached" ]; then
+        (tmux attach -t $1)
+    else
+        return 1
+    fi
+}
+
 function has-session {
     tmux has-session -t $1 2>/dev/null
 }
 
+function list-sessions {
+    echo `tmux list-sessions | cut -d: -f1`
+    }
 function except 
 {
     if [ "$?" -eq 1 ] ; then
-        $1
+        $@
     fi
 }
 
@@ -39,20 +55,21 @@ function session-hi
 }
 
 
-
+# Create sessions if they don't exist
 for x in $SESSIONS
 do
-    echo $x
     has-session $x
     except session-$x
 done
 
 
-tmux link-window -dk -s daemons:manage -t hi:0
+tmux link-window -dk -s daemons:manage -t hi:0 2>/dev/null
 
-tmux attach -t hi
-
-
+# Attach to session with no attached clients
+for x in $(list-sessions) ; do
+    try-attach $x && exit 0
+    echo "Couldn't attach to session $x"
+done
 
 
 
@@ -75,15 +92,4 @@ function has-sessions {
 	rc=$rc+$?
     return rc
     done
-}
-function try-attach 
-{
-    echo "In Try"
-    tmux has-session -t $1 2>/dev/null
-    rc="$?"
-    if [ "$rc" -eq "0" ] ; then
-        (tmux attach -t $1)
-    else
-        return $rc
-    fi
 }
