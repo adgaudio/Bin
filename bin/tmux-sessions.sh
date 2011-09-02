@@ -65,13 +65,14 @@ done
 
 tmux link-window -dk -s daemons:manage -t hi:0 2>/dev/null
 
-# Attach to session with no attached clients
+# Attach to any existing session with no attached clients
 for x in $(list-sessions) ; do
     try-attach $x && exit 0
     echo "Couldn't attach to session $x"
 done
 
-
+# if all sessions already attached to, create a new one and attach
+tmux new
 
 
 
