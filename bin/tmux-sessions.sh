@@ -21,7 +21,7 @@ function has-session {
 }
 
 function list-sessions {
-    echo `tmux list-sessions | cut -d: -f1`
+    echo `tmux list-sessions | cut -d: -f1 | sort -r`
     }
 function except 
 {
