@@ -1,0 +1,3 @@
+[submodule "projects/spf13-vim"]
+	path = projects/spf13-vim
+	url = git@github.com:adgaudio/spf13-vim.git
