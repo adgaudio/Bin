@@ -1,0 +1,11 @@
+"""The following opens pdb debugger on failure and pretty prints 
+   the traceback
+   Embed this code snippet in the top of your 'main' routine
+   to automatically start pdb and have colored tracebacks
+"""
+
+import ultratb 
+sys.excepthook = ultratb.FormattedTB(mode=’Verbose’, 
+                                     color_scheme=’Linux’, 
+                                     call_pdb=1)
+

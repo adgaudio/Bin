@@ -1,0 +1,7 @@
+def do():
+   a = ''
+   for x in sorted(os.listdir('.')):
+       a += file(x, 'r').read()
+       print x
+   return a
+

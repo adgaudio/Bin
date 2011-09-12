@@ -1,0 +1,113 @@
+My talk will talk about IPython for Software Development and shell integration.  IPython has many advanced and scientific uses, but this talk will focus on an introduction to IPython and leave the math for another time.  Specifically, I hope to show you the tips and tricks that make using this tool more enjoyable and useful 
+
+http://fperez.org/talks/0702_pycon_ipython.pdf
+
+
+Main Features for daily use
+    The purpose of this section is just to give a broad overview of what's immediately available at your disposal for general ipython use.  We will go into details later.
+
+    1. Tab Completion
+    2. Object exploration with psearch, ? or pdoc, ?? or psource, pfile, who, whos, etc...
+    3. Magic Functions: %lsmagic and %magic?
+        There are a lot of useful magic functions, and we will only have time to explore some of them.  Lets look at a few important ones.
+        - for working with code
+        - for working with shell
+        - %history, %run, %edit, %cd
+            - _, __, and ___, _ih, _oh, hist -g <regexp>
+        - general use: %reset, %timeit, %paste, %autocall and /, %autoquote and , or ;
+    4. Customized configuration and Profiles
+
+
+Use Cases:
+    In this section, we will use IPython to accomplish some basic tasks.  Each successive subsection will show a few more IPython features, run through examples, and demo something that takes a little configuration or extra effort, or something that just doesn't work yet.
+
+    1. As System shell
+        - !, %pushd, %popd, %dhist, %cd (!cd won't work)
+        - %alias - magic functions that are system shell cmds
+            - %rehashx - not that this doesn't mess up your namespace :)
+        - %sx or ! or !!
+            - create a file and  !tail the file
+            - a = !tail    or    !!tail ; _
+            - b='from ipython' ; c = ' and me'
+              !echo 'hello $b'
+              !echo 'hello ${b + c}'
+        - SList grep, fields, sort, .l, .n, .p (path manipulations!)
+            - a = !ls -l
+            - a.fields() ; a.grep(r'^d').fields(-1).p ... !!!
+        - exercise: port .bashrc aliases into ipython
+
+    2. Code Development
+        - %edit (-p, ) (go over options and show example usage)
+        - %run  (go over options and show example usage)
+        - Show different workflow possibilities
+        - Vim integration?
+        - an example where caching messes everything up?
+    3. Interactive data exploration
+        - IPython.embed() (example of data exploration)
+            - Lets you see code in its own namespace, so changes to variables won't affect program execution
+            - A view on data, plots, functions, etc
+        - %gui, ipython --pylab=['tk', 'qt', 'wx', 'gtk', 'osx'], ipython-qtconsole
+
+
+    other: Running Doctests? %doctest_mode
+
+        - other significant magic fuddnctions I won't explain in my use cases?
+
+
+
+IPython USE CASES:
+1. A better Python shell: object introspection, system access, ’magic’ command system, configurable/customizable
+
+   Magic functions: the '%' prefix
+
+   Introspection, Exploration, Coding:
+       ? and ??: object? gives details about an object.  This also works:  a = zip?
+       %pdoc, %pdef, %pfile, %psource, %pinfo ( or ? and ?? )
+       wildcard search:  foobar = 1 ; *oo*?
+       %run 
+       %run -p --> profile programs: list function calls, cumulative time inside them, and cumulative time inside minus time in sub-calls
+       %prun   --> proﬁle single Python expressions (like function calls)	    
+       %xmode
+       %pdb and %debug
+       %edit
+       %dreload - recursive reload, doesn't always work
+
+   History:
+       %hist
+       Output: stored in the global variables, Out and _N (ie Out[4] == _4). Also, _, __, and ___ keep the last three results.
+       Input: stored in the global variable, In.
+       %logstart, %logon/off, %runlog (for ignoring errors.  %run also works, but fails on errors)
+       %cd, %dhist, %popd, %pushd, %bookmark  --> directory history: change dir, manage dir stacks, bookmark a location
+
+   Other goodies:
+       %macro mymacro 1:4 6 #turns first 4 lines and the 6th line of history into a callable function
+        macro mymacro 
+           %edit mymacro # just brilliant.
+
+       %
+
+       %autocall # Automatically add parentheses 
+       %autoquotes
+ipython -pylab --> interactive matplotlib integration
+
+
+
+2. An embeddable interpreter: for debugging and for mixing batch-processing interactively
+	    DEMO: embed_ipython.py and embed_ipython2.py
+
+3. A ﬂexible framework: you can use it as the base environment for other systems with
+Python as the underlying language. It is very conﬁgurable in this direction.
+4. A system for interactive control of distributed/parallel computing systems: next talk.
+5. An interactive component we can plug into GUIs, browser-based shells, etc
+6. Fun Utility modules:
+   PyColorize:
+       from ipython, call:  myfile = file('SOMECODE.py').read() ; import IPython.PyColorize as p ; p.Parser().format(myfile)
+   Demo:
+       from IPython import demo ; demo.Demo('embed_ipython.py')
+
+http://www.quora.com/What-is-IPython-and-why-would-I-want-to-use-it?q=ipython
+
+cool ipython tidbits:
+
+
+
