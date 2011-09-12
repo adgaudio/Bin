@@ -16,8 +16,6 @@ Main Features for daily use
             - _, __, and ___, _ih, _oh, hist -g <regexp>
         - general use: %reset, %timeit, %paste, %autocall and /, %autoquote and , or ;
     4. Customized configuration and Profiles
-
-
 Use Cases:
     In this section, we will use IPython to accomplish some basic tasks.  Each successive subsection will show a few more IPython features, run through examples, and demo something that takes a little configuration or extra effort, or something that just doesn't work yet.
 
@@ -47,7 +45,10 @@ Use Cases:
             - Lets you see code in its own namespace, so changes to variables won't affect program execution
             - A view on data, plots, functions, etc
         - %gui, ipython --pylab=['tk', 'qt', 'wx', 'gtk', 'osx'], ipython-qtconsole
-
+    
+        - python-qtconsole --pylab=inline- Gui Integration for and visualization/plotting capabilities
+            - %loadpy, custom fonts, pictures
+    6. Parallel Computing
 
     other: Running Doctests? %doctest_mode
 
