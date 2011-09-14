@@ -1,7 +1,0 @@
-c = get_ipython()
-
-def do_magical_import(self, arg):
-    c = self.api
-    c.ex("import %s ; dreload(%s) ; from %s import *" % (arg,)*3)
-
-c.expose_magic('imports', do_magical_import)
