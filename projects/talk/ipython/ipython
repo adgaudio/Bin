@@ -54,15 +54,15 @@ Use Cases:
         - %run  (go over options and show example usage): run -p, run -d
         - %pdb, %xmode (changes way tracebacks appear)
         - embedding ipython
+        Others:
         - %doctest_mode
-
         - Vim integration? currently broken, but ipython install ships with ipython.vim plugin somewhere in your filesystem...
-        - multidb example
 
     3. Interactive data exploration
         - IPython.embed() (example of data exploration)
             - Lets you see code in its own namespace, so changes to variables won't affect program execution
             - A view on data, plots, functions, etc
+            - multidb_query.py example
         - %gui, ipython --pylab=['tk', 'qt', 'wx', 'gtk', 'osx'], ipython-qtconsole
         - %pylab, plot()
     
@@ -75,54 +75,8 @@ Use Cases:
 
 http://fperez.org/talks/0702_pycon_ipython.pdf
 
-IPython USE CASES:
-1. A better Python shell: object introspection, system access, ’magic’ command system, configurable/customizable
-
-   Magic functions: the '%' prefix
-
-   Introspection, Exploration, Coding:
-       %prun   --> proﬁle single Python expressions (like function calls)	    
-       %xmode
-       %pdb and %debug
-       %edit
-       %dreload - recursive reload, doesn't always work
-
-   History:
-       %hist
-       Output: stored in the global variables, Out and _N (ie Out[4] == _4). Also, _, __, and ___ keep the last three results.
-       Input: stored in the global variable, In.
-       %logstart, %logon/off, %runlog (for ignoring errors.  %run also works, but fails on errors)
-       %cd, %dhist, %popd, %pushd, %bookmark  --> directory history: change dir, manage dir stacks, bookmark a location
-
-   Other goodies:
-       %macro mymacro 1:4 6 #turns first 4 lines and the 6th line of history into a callable function
-        macro mymacro 
-           %edit mymacro # just brilliant.
-
-       %
-
-       %autocall # Automatically add parentheses 
-       %autoquotes
-ipython -pylab --> interactive matplotlib integration
-
-
-
-2. An embeddable interpreter: for debugging and for mixing batch-processing interactively
-	    DEMO: embed_ipython.py and embed_ipython2.py
-
-3. A ﬂexible framework: you can use it as the base environment for other systems with
-Python as the underlying language. It is very conﬁgurable in this direction.
-4. A system for interactive control of distributed/parallel computing systems: next talk.
-5. An interactive component we can plug into GUIs, browser-based shells, etc
-6. Fun Utility modules:
-   PyColorize:
-       from ipython, call:  myfile = file('SOMECODE.py').read() ; import IPython.PyColorize as p ; p.Parser().format(myfile)
-   Demo:
-       from IPython import demo ; demo.Demo('embed_ipython.py')
-
 http://www.quora.com/What-is-IPython-and-why-would-I-want-to-use-it?q=ipython
 
-cool ipython tidbits:
 
 
 
