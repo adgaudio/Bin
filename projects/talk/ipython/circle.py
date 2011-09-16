@@ -25,5 +25,8 @@ class Circle(object):
 
     def _repr_png_(self):
         return latex_to_png('$\\circle$')
+
+print "I am printing a circle object"
 print Circle('hi')
-Circle('ha')
+print "I am graphically rendering a circle object.  This only works when using a gui, like ipython-qtconsole"
+display(Circle('ha'))

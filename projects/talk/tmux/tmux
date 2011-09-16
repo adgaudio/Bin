@@ -15,7 +15,7 @@ The purpose of this talk is to explore tmux is and get everyone started using it
         - Panes, easy window splitting
         - Easily Scriptable
         - Multiple Paste buffers.
-        - Active development
+        - Active development, cleaner code!
     Screen:
         - Logging
     - For more details, see the FAQ.  It's pretty good.
@@ -25,12 +25,13 @@ The purpose of this talk is to explore tmux is and get everyone started using it
 6. Easily scriptable - tmux-sessions.sh   ... look on github!
 7. What is it useful for?
     - Managing and organizing your projects effectively
-        - EX: Putting all your daemons or background jobs in one place
+        - EX: Putting all your daemons, background jobs, and insane system monitoring stuff in one place
         - tslime: vim plugin (https://github.com/xaviershay/tslime.vim.git)
     - Remote machines: Distributed Computing problem
-        - Nested tmux sessions (nested on different machines)
+        - Nested tmux sessions (you can even nest sessions on your own machine, but that's just crazy!)
             - you may want to apply a patch or use a different config.
                 - $ diff -c .tmux.conf > tmuxconf.patch  ...  $ patch .tmux.conf tmuxconf.patch
+        - Synchronized panes, pane splitting in nested scenarios
     - No More nohup!
     - Screen sharing 
 8. What's it not useful for?

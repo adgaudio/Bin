@@ -6,14 +6,13 @@ Main Features for daily use
     The purpose of this section is just to give a broad overview of what's immediately available at your disposal for general ipython use.  We will go into details later.
 
     1. Tab Completion
-    2. Object exploration with psearch, ? or pdoc, ?? or psource, pfile, who, whos, etc...
+    2. Object exploration with %psearch ; ? or %pdoc (ie  foobar = 1 ; *oo*?  ) ; ?? or %psource; %pfile; %who; %whos...
     3. Magic Functions: %lsmagic and %magic?
         There are a lot of useful magic functions, and we will only have time to explore some of them.
         - %history, %run, %edit, %cd
-            - _, __, and ___, _ih, _oh, hist -g <regexp>
         - general use/miscellaneous: %reset, %timeit, %paste, %autocall and /, %autoquote and , or ;
         - define your own magic: a = get_ipython() ; a.define_magic('name', function)
-    4. Customized configuration and Profiles:  
+    4. Customized configuration and Profiles:  this is new since July
         - Built from scratch, heavily based off of Enthought traitlets, pure python
         - Can be very simple or really complicated, as you choose.  Everything can be configured.
             - from interpreter: get_ipython()
@@ -23,13 +22,14 @@ Main Features for daily use
             - Extensions: advanced config that gives access to the running IPython instance
                 - Plugins: extensions load plugins which add new capabilities
     5. History
-        - retains input in a database.  logs sessions. search sessions.
-        - a = get_ipython.history_manager ; a.search("zip*")
+        - %pushd, %popd, %dhist, %cd (!cd won't work)
+        - _, __, and ___, _ih, _oh, %hist -g <regexp>
+        - retains input in a database.  logs session input. search sessions.
+        - advanced history example:  a = get_ipython.history_manager ; a.search("zip*")
 Use Cases:
     In this section, we will use IPython to accomplish some basic tasks.  Each successive subsection will show a few more IPython features, run through examples, and demo something that takes a little configuration or extra effort, or something that just doesn't work yet.
 
     1. As System shell
-        - %pushd, %popd, %dhist, %cd (!cd won't work)
         - %sx or ! or !!
             - create a file and  !tail the file
             - a = !tail    or    !!tail ; _
@@ -51,12 +51,12 @@ Use Cases:
         - %macro (make a macro from above code. use it, then turn it into a script)
         - Show different workflow possibilities 
         - %edit (-p, ) (go over options and show example usage)
-        - %run  (go over options and show example usage)
-        - %pdb, %xmode
+        - %run  (go over options and show example usage): run -p, run -d
+        - %pdb, %xmode (changes way tracebacks appear)
         - embedding ipython
         - %doctest_mode
 
-        - Vim integration?
+        - Vim integration? currently broken, but ipython install ships with ipython.vim plugin somewhere in your filesystem...
         - multidb example
 
     3. Interactive data exploration
@@ -81,11 +81,6 @@ IPython USE CASES:
    Magic functions: the '%' prefix
 
    Introspection, Exploration, Coding:
-       ? and ??: object? gives details about an object.  This also works:  a = zip?
-       %pdoc, %pdef, %pfile, %psource, %pinfo ( or ? and ?? )
-       wildcard search:  foobar = 1 ; *oo*?
-       %run 
-       %run -p --> profile programs: list function calls, cumulative time inside them, and cumulative time inside minus time in sub-calls
        %prun   --> proﬁle single Python expressions (like function calls)	    
        %xmode
        %pdb and %debug
