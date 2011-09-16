@@ -68,11 +68,8 @@ Use Cases:
     
         - python-qtconsole --pylab=inline- Gui Integration for and visualization/plotting capabilities
             - %loadpy, custom fonts, pictures
-    6. Parallel Computing
-
-    other: Running Doctests? %doctest_mode
-
-        - other significant magic fuddnctions I won't explain in my use cases?
+        - pandas!!!??? TODO: can I pipe output from my multidb_query.py into pandas?
+    6. Parallel Computing???
 
 
 
