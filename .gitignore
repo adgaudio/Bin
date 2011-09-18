@@ -1,12 +1,3 @@
 *.pyc
 \#*\#
 *~
-
-#Skip specific files
-projects/configs/.profile
-projects/configs/gaudiosonline
-projects/django/alexgaudio
-projects/django/gaudiosonline
-projects/django/pygotham_alex
-projects/spf13-vim # available in different repo
-docs
