@@ -2,7 +2,6 @@ This repo contains some useful tools and mini projects.
 
 Mini projects:
 
-* Config - other less used and unimportant files.
 
 * **Markov Chains** - for random sequence generation.  Works on input split by space or by character, depending on how you configure it
 
@@ -24,3 +23,6 @@ Bin:
 * **sequencefactory.py** - Dynamic Inheritance in python! Given an object, return new object of same type with some additional methods.
 * **tmux-sessions.sh** - sym link to tmux project
 * **tmux_backup.sh** - sym link to tmux project
+
+
+Config - less used or unimportant files.
