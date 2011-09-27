@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 
-#
-# By: Alex D. Gaudio   --   www.alexgaudio.com
-#
-
 import subprocess
 import sys, os
 import datetime
@@ -27,33 +23,33 @@ colors = {1: '\x1b[1;37m',
 class BashWrapper(object):
     """Wrap a simple bash script to provide:
            1. Workflow: If you want, stop execution if stderr is returned
-           2. Logging: Specify an object with a write method 
+           2. Logging: Specify an object with a write method
               (like sys.stdout, or an open file)
            3. Pretty print resulting output
 
         Gotchas:
-            1. script can't have code blocks (if, for, while, etc), 
-               but it can use variables.  A work-around until this gets 
+            1. script can't have code blocks (if, for, while, etc),
+               but it can use variables.  A work-around until this gets
                fixed would be to call a separate file containing the function
                from the main bash script.
 
-            2. The readonly bash env vars, like SHELLOPTS, cannot be changed, 
+            2. The readonly bash env vars, like SHELLOPTS, cannot be changed,
                and the value of SHELLOPTS is set at BashWrapper runtime.
-               This "feature/problem" of the subprocess module means the "set" 
-               cmd won't be effectiv.  
+               This "feature/problem" of the subprocess module means the "set"
+               cmd won't be effectiv.
                NOTE: you can use the "set" cmd in scripts the bash script calls
     """
     def __init__(self):
         pass
-    
-    def wrap(self, bashfile, writer=sys.stdout, stderr_okay=False): 
+
+    def wrap(self, bashfile, writer=sys.stdout, stderr_okay=False):
         """Given filepath to bash script, execute commands and write output.
         stderr_okay determines whether to raise exception on stderr"""
         f = open(bashfile, 'r').readlines()
         env = os.environ.copy()
 
         # If no output wanted at all
-        class NullOut: 
+        class NullOut:
             write=lambda *x:None
             close=lambda *x:None
         if not writer:
@@ -67,6 +63,9 @@ class BashWrapper(object):
               timestart, timeend, stdout, env = \
                       self.execute(cmd, env, stderr_okay)
               writer.write(self.report(cmd, timestart, timeend, stdout))
+            except Exception, e:
+              self.emailFailure(bashfile, cmd, e, to_cellphone=True) # used to page cell phone
+              raise
             finally:
               writer.flush()
         if writer!=sys.stdout:
@@ -80,8 +79,8 @@ class BashWrapper(object):
         cmd += " ; echo %s ; set" % (marker)
         timestart = datetime.datetime.now()
         shell = subprocess.Popen(cmd,
-                                 shell=True, 
-                                 stdout=subprocess.PIPE, 
+                                 shell=True,
+                                 stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE,
                                  stdin=subprocess.PIPE,
                                  env=env)
@@ -93,7 +92,7 @@ class BashWrapper(object):
         if not stderr_okay and stderr != []:
             stdout = ''.join(stdout)
             if len(stdout) > 60:
-                stdout = (stdout[:60] + "...TRUNCATED") 
+                stdout = (stdout[:60] + "...TRUNCATED")
             msg2 =('\n---CMD:%s\n---STDOUT:%s\n---STDERR:%s' % (
                 cmd, stdout, ''.join(stderr)))
             raise Exception(msg2)
@@ -118,24 +117,63 @@ class BashWrapper(object):
     %s=====================================
     CMD: %s
     TIME STARTED: %s
-    TIME ENDED: %s
+    TIME DELTA: %s
     =====================================
     %s%s
 """ % (colors[2], cmd,
              timestart,
-             timeend, colors['normal'],
-             stdout) 
-        
+             timeend - timestart, colors['normal'],
+             stdout)
+
 
     ######
     #UTIL FUNCTIONS
     ######
+    def emailFailure(self, bashfile, cmd, exception, to_cellphone=False):
+        from email_settings import username, password, \
+            relay, sender, destination, cellphone_dest, cellphone_msg
+        import socket
+        hostname = socket.getfqdn()
+        content = """
+        hostname: %s
+
+        Bash Wrapper failed to execute a cmd in a bash file.
+        Bash File: %s
+        Cmd: %s
+        Error: %s
+        """ % (hostname, bashfile, cmd, exception)
+        subject = '%s failed' % (hostname)
+
+        print("emailing traceback to %s" % ', '.join(destination))
+        self.sendemail(sender, destination, content, subject, username, password, relay)
+        if to_cellphone:
+          print("emailing msg to phone.  phone: %s msg: %s" % (cellphone_dest, cellphone_msg))
+          #self.sendemail(sender, cellphone_dest, cellphone_msg, '', username, password, relay)
+
+    def sendemail(self, sender, destination, content, subject, username, password, relay):
+        """Send email"""
+        from smtplib import SMTP_SSL as SMTP
+        from email.MIMEText import MIMEText
+        #msg content
+        msg = MIMEText(content, 'plain')
+        msg['Subject'] = subject
+        msg['From'] = sender
+
+        conn = SMTP()
+        conn.connect(relay)
+        conn.login(username, password)
+
+        try:
+            conn.sendmail(sender, destination, msg.as_string())
+        finally:
+            conn.close()
+
     def parseFile(self, f, get_funcs=False):
         cmds, funcs = self.strip_bash_funcs(f)
         g = []
         # Strip comments using shlex
         f_ = iter(f)
-        for cmd in f_: 
+        for cmd in f_:
             lex = shlex.shlex(cmd)
             # hacks: shlex does weird things with quotations and variables
             lex.wordchars = "$ " + lex.wordchars
@@ -149,7 +187,7 @@ class BashWrapper(object):
                         cmd = list(shlex.shlex(cmd))
                     except ValueError or StopIteration:
                         pass # don't use shlex when it fails
-                else: 
+                else:
                     raise
             g.append(''.join(cmd))
         if get_funcs:
@@ -165,9 +203,9 @@ class BashWrapper(object):
                 result.append(next(iterable))
         except StopIteration:
             return result
-    
+
     def split2dict(self, vars, delimiter='='):
-        """Given list of bash env vars and a delimiter, 
+        """Given list of bash env vars and a delimiter,
         parse values by delimeter and return dict"""
         d = {}
         #vars, funcs = self.parseFile(vars, get_funcs=True) # todo: bugfix: use parseFile like this to take care of multiline env vars
@@ -185,7 +223,7 @@ class BashWrapper(object):
             v = re.sub(r'''['"](.*?)["']''', r'\1' ,v)
             d[k] = v
         return d
-    
+
     def strip_bash_funcs(self, iterable):
         """Strip bash functions from given lines of bash code
         Return a list with no functions a 2nd list of the missing functions"""
@@ -193,7 +231,7 @@ class BashWrapper(object):
         funcs = []
         peek = peekable(iterable)
         for elt in peek:
-            if '()' in elt and (elt.strip().endswith('{') or 
+            if '()' in elt and (elt.strip().endswith('{') or
                         peek.peek().strip().startswith('{')):
                 funcs.append([])
                 while '}' not in elt:
@@ -202,9 +240,9 @@ class BashWrapper(object):
             it.append(elt)
         return it, funcs
 
-if __name__ == '__main__':  
+if __name__ == '__main__':
     import argparse
-    
+
     parser = argparse.ArgumentParser(
             description='Wraps a bash script in python to provide '
                         'workflow, logging, and formatted output')
@@ -226,3 +264,4 @@ if __name__ == '__main__':
     else:
         a.wrap(c.filename)
     # a.wrap(sys.argv[1], writer=None) #for example
+
