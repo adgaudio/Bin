@@ -114,7 +114,7 @@ if __name__ == '__main__':
     QUERY = open(sys.argv[1], 'r').read()
   except:
     print 'from query import QUERY FAILED.  using default query.sql'
-    QUERY = open('query.sql', 'r').read()
+    QUERY = open('helper_files/query.sql', 'r').read()
 
   data, queries, conns, curs = run(QUERY, dbs, keep_alive=True, stdout=True)
   testdata = lambda: test(data)

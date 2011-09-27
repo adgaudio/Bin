@@ -1,6 +1,6 @@
 This repo contains some useful tools and mini projects.
 
-Mini projects:
+projects:
 
 
 * **Markov Chains** - for random sequence generation.  Works on input split by space or by character, depending on how you configure it
@@ -11,9 +11,9 @@ Mini projects:
 
 
 
-Bin:
+bin:
 
-* **bash_wrapper.py** - wrap bash scripts in python to enable colorized logging, controlled workflow, and some basic bash-python integration.  Works, but not too useful.
+* **bash_wrapper.py** - wrap bash scripts in python to enable colorized logging, controlled workflow, and some basic bash-python integration.
 * **cssparser.py** - reformat css from web into readable version
 * **markovchain.py** - sym link to markov project 
 * **matching_utils.py**
@@ -24,5 +24,8 @@ Bin:
 * **tmux-sessions.sh** - sym link to tmux project
 * **tmux_backup.sh** - sym link to tmux project
 
+bin/helper_files:
+* **email_settings.py** - used by bin/bash_wrapper.py to send emails
+* **query.sql** - used by multidb_query.py if no query doc provided
 
 Config - less used or unimportant files.
