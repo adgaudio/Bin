@@ -7,24 +7,33 @@ def fields(cls, *cols):
             b[-1].append(y[x])
     return b
 
-def grep(cls, value):
-    def grepp(value, seq):
+def grep(cls, value, parent=0):
+    def grepp(value, seq, parent):
         """Depth-first search for value in seq and sub-seqs
-           Return list of elements containing value"""
+           Return list of elements containing value.
+           if parent, return parent seq containing value"""
         b = make([])
         for x in seq:
             if value == x:
-                b.append(x)
+                if parent:
+                    b.append(seq)
+                    break
+                else:
+                    b.append(x)
                 continue
             try: #hack tests
                 iter(x) ; value in x ; len(x)
             except: continue
             if value in x and isinstance(x, str):
-                b.append(x) #don't iterate further over strings
+                if parent:
+                    b.append(seq)
+                    break
+                else:
+                    b.append(x) #don't iterate further over strings
             elif len(x) > 1:
-                b.extend(grepp(value, x))
+                b.extend(grepp(value, x, parent))
         return b
-    return grepp(value, cls)
+    return grepp(value, cls, parent)
 
 #factory
 def make(seq):
