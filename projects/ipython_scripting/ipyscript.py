@@ -1,27 +1,18 @@
 #!/usr/bin/env python
 
-"""A whole new style of bash scripting!
+"""A whole new style of python and bash scripting!
 By wrapping your (python) scripts with this file,
-you can take advantage of ipython syntax.
-This means really good integration with bash code,
-ability to use lazy syntax, and full ipython interactive
-interpreter capabilities"""
+you can take advantage of the ipython syntax and
+its full feature set.  This means really good integration
+with bash code, ability to use lazy syntax,
+and things like accessing output history, directory history, etc"""
 
 import sys
-#import __builtin__
-#from IPython.core.interactiveshell import InteractiveShell #Base class of TerminalInteractiveShell
-#from IPython.frontend.terminal.interactiveshell import *
 from IPython.frontend.terminal.interactiveshell import TerminalInteractiveShell
 
 
 def execute():
     """supports pure python or ipython-bash style syntax.
-
-    BUG: to take advantage of ipython special/lazy syntax,
-        you need to explicitly call it.
-          ie. all bash cmds need to start with '!'
-          ie. must explicitly call %autocall and other syntax-related magics
-          /zip [1,2], [3,4]  ... NOT ... zip [1,2], [3,4]
     """
 
     shell = TerminalInteractiveShell()
