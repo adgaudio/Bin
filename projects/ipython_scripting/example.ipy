@@ -1,4 +1,4 @@
-#!/usr/bin/env python /Users/agaudio/bashscripting.py
+#!/usr/bin/env python ./ipyscript.py
 
 #python code
 raw_input '\nexamples of python code (using ipython syntax). Press a key to continue...'
