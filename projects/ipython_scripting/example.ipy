@@ -1,5 +1,9 @@
 #!/usr/bin/env python ./ipyscript.py
 
+a=1
+b=2
+c = get_ipython()
+print c.magic_hist()
 #python code
 raw_input '\nexamples of python code (using ipython syntax). Press a key to continue...'
 print 'importing works'
@@ -7,29 +11,36 @@ import sys ; print sys
 def a():
     return "Multi-line python (or ipython-bash) code works!"
 print a()
+
 raw_input '\nYou can take advantage of auto-parentheses and auto quoting'
 print 'note that ipython prints corrected output where your lazily written code has been modified.'
 zip ['I', 'be', 'programmer'], ['can', 'a lazy', '!']
 /zip [1,2] [4,5]
 ;print a semi-colon at the beginning of a line of code auto quotes it!
 
-raw_input '\nYou can access your history of outputs'
+raw_input '\nIf you have store_history=True, you can access your output history'
+c = get_ipython()
+c.
 a=_
 print 'most recent output: %s' % a
-hist
+history
 
 raw_input '\nThese magic functions are available to you.'
-lsmagic # magic functions work
+lsmagic
+
+raw_input "You can also access the IPython configuration"
+c = get_ipython()
+print c
 
 #bash code examples # doesn't work until %rehashx works or unless you make aliases for them
-print '\nexecute bash code after executing the %reshashx magic'
+raw_input '\nexecute bash code after executing the %reshashx magic'
 rehashx
 
 echo 'some bash code'
 echo 'I can just use bash as normal.'
 echo 'But realize that the interpreter will choose to execute python code before bash code.'
 echo 'Your macros or magic functions can override bash cmds'
-ls -l | cut -d' ' -f1 |tail -n 5
+ls -l | cut -d' ' -f1 |tail -n 3
 
 
 #bash-python code
@@ -41,3 +52,7 @@ print 'python variable storing output of "ls -l":'
 print a
 raw_input 'Dont forget to take advantage of SLists! ... '
 a?
+
+raw_input 'Use the %edit magic to execute arbitrary code'
+edit
+
