@@ -1,14 +1,4 @@
-
-#factory
-def make(inst, cls):
-    """Given an instance and a class object,
-    add methods from cls to the instance and
-    return new instance with the added methods"""
-    class X(inst.__class__, cls):
-        pass
-    # Rename class so it's clear we've added methods
-    X.__name__ = '%s_%s' % (inst.__class__.__name__, cls.__name__)
-    return X(inst)
+from mixins import imake as make
 
 class GrepFieldMixin(object):
     """additional methods for classes with __iter__,
@@ -55,6 +45,8 @@ class GrepFieldMixin(object):
         return rv
 
     def grep(self, value, parent=0):
+        """Grep for value in self.
+        if parent=True, return sequence value was found in"""
         return self._grep(value, self, parent)
 
     def _grep(self, value, seq, parent):
@@ -66,75 +58,79 @@ class GrepFieldMixin(object):
         rv = make([], GrepFieldMixin)
 
         for x in seq:
-            match = False
+            append = False
+            recurse = True
+
             # Did we find an exact match?
             if value == x:
-                if parent:
-                    rv.append(seq)
-                    break
-                else:
-                    rv.append(x)
-
-            try: #continue if cannot perform these ops
-                iter(x) ; value in x ; len(x)
-            except: continue
-
-            # Strings: now do we have a match?
+                append = True
             try:
-                if value in x and isinstance(x, str):
-                    match = True
-                # Edge condition
-                if len(x) == 1 and isinstance(x[0], str) and value in x[0]:
-                    x = x[0]
-                    match = True
-            except: pass
+                # Strings: is val in string?
+                match = False
+                if isinstance(x, str) and value in x:
+                    append = True
+                # Match on edge condition
+                if len(x) == 1:
+                    if isinstance(x, str) and value in x[0] or value == x[0]:
+                        x = x[0]
+                        append = True
+                        recurse = False
+            except Exception, e:
+                pass # likely not iterable or 'value in x' not possible
 
-            if match: #DUPLICATE CODE AS ABOVE!
+            if append:
                 if parent:
                     rv.append(seq)
                     break
                 else:
                     rv.append(x)
+                    continue
+
             # Recurse over relevant sub-seqs
-            elif len(x) > 1:
+            if hasattr(x, '__iter__') and recurse:
                 rv.extend(self._grep(value, x,  parent))
         return rv
 
 
 if __name__ == '__main__':
 
-    """Embarassingly ugly tests"""
-
     def testgrep():
-        a = [1, 'hih', 'aaa', 'bbb', 'cab', 'dad', [1, 2, 'anested', [2, ['anothera', 5], 1], {'a':1, 4:'a'}], 4, [5, 1], 'aend']
-        c = make(a, GrepFieldMixin)
-        print 'input:', c
-        d = True
-        r1 = c.grep('a')  == ['aaa', 'cab', 'dad', 'anested', 'anothera', 'a', 'aend'] or c.grep('a')
-        r2 = c.grep(2)    == [2, 2] or c.grep(2)
-        r3 = c.grep(1)    == [1, 1, 1, 1] or c.grep(1)
-        r4 = c.grep('ab') == ['cab'] or c.grep('ab')
-        r5 = make([['c'], 1], GrepFieldMixin).grep('c') == ['c'] or  make([['c'], 1], GrepFieldMixin).grep('c')
-        result = all(x == True for x in [r1, r2, r3, r4, r5])
-        print 'passed test grep():', result
-        if not result:
-            print "failures:"
-            print r1
-            print r2
-            print r3
-            print r4
-            print r5
+        """
+        >>> a = make([['c'], [1]], GrepFieldMixin)
+        >>> a.grep('c')
+        ['c']
+        >>> a.grep(1)
+        [1]
+        >>> a = [['a'], [[[1]]], 1, 'abc', (x for x in 'bab'), [1, 2, 'ab', [1, ['anothera', 5, 1], 1], {'akey':1, 1:'avalue'}], 'a']
+        >>> a = make(a, GrepFieldMixin)
+        >>> a.grep(1)
+        [1, 1, 1, 1, 1, 1, 1]
+        >>> a.grep('a')
+        ['a', 'abc', 'ab', 'anothera', 'akey', 'a']
+        >>>
+        """
+        pass #doctest
 
     def testfields():
-        a = (['col1', 'col2', 'col3'], [1, 2, 3], (1,2,3))
-        c = make(a, GrepFieldMixin)
-        print 'passed test fields():', c.fields(0,2) == [['col1', 'col3'], [1, 3], [1, 3]]
-        c = make((lambda : 1, ['a', 'b']) + c + (1,), GrepFieldMixin)
-        print 'passsed test anyfields():', c.anyfields(0, 2) == [['col1', 'col3'], [1, 3], [1, 3]]
-        return c.anyfields(0, 2)
+        """
+        >>> a = (['col1', 'col2', 'col3'], [1, [[2]], [{3:3}]], (1,2,3))
+        >>> c = make(a, GrepFieldMixin)
+        >>> c.fields(0,2)
+        [['col1', 'col3'], [1, [{3: 3}]], [1, 3]]
+        >>> c = make((lambda : 1, ['a', 'b']) + c + (1,), GrepFieldMixin)
+        >>> c.anyfields(0, 2)
+        [['col1', 'col3'], [1, [{3: 3}]], [1, 3]]
+        >>>
+        """
+        pass #doctest
+
     def testcombined():
-        a = make([[1,2,3], ['a','b','c'], ['A', 'B', 'C']], GrepFieldMixin)
-        print 'pass test .fields().grep()', a.fields(0,1).grep('B') == ['B']
-    testgrep()
-    testfields()
-    testcombined()
+        """
+        >>> a = make([[1,2,3], ['a','b','c'], ['A', 'B', 'C']], GrepFieldMixin)
+        >>> a.fields(0,1).grep('B')
+        ['B']
+        """
+    print "Running doctests"
+    import doctest
+    print doctest.testmod()
+

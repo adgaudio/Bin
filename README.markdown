@@ -17,9 +17,10 @@ bin:
 * **bash_wrapper.py** - wrap bash scripts in python to enable colorized logging, controlled workflow, and some basic bash-python integration.
 * **cssparser.py** - reformat css from web into readable version
 * **ipyscript.py** - compile and execute IPython scripts
-* **grepfieldmixin.py** - Dynamic Inheritance in python! Make objects with useful variants of grep and field methods
+* **grepfieldmixin.py** - Make objects with useful variants of grep and field methods
 * **markovchain.py** - sym link to markov project 
 * **matching_utils.py**
+* **mixins.py** - 'make' functions to make using mixins/multiple inheritance easier.
 * **md5_async.py** - asynchronous md5 sum against multiple files. 
 * **multidb_query.py** - execute sql queries against two (remote) databases, merge results, and drop into ipython shell. Super useful!  
 * **peekable.py** - make an iterator peekable (ie look ahead, but don't call next() )
