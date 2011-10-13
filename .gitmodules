@@ -4,3 +4,6 @@
 [submodule "projects/markov"]
 	path = projects/markov
 	url = git@github.com:adgaudio/Markov.git
+[submodule "projects/fixturefactory"]
+	path = projects/fixturefactory
+	url = git@github.com:adgaudio/fixturefactory.git
