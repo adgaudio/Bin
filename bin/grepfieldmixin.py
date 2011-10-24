@@ -91,6 +91,10 @@ class GrepFieldMixin(object):
                 rv.extend(self._grep(value, x,  parent))
         return rv
 
+def grepfieldable(inst):
+    """add mixin to instance"""
+    return make(inst, GrepFieldMixin)
+
 
 if __name__ == '__main__':
 
