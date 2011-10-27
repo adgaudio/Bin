@@ -7,6 +7,9 @@ import re
 import shlex
 
 from peekable import peekable
+from email_settings import sendemail, username, password, \
+      relay, sender, destination, cellphone_dest, cellphone_msg
+import socket
 
 colors = {1: '\x1b[1;37m',
          2: '\x1b[1;36m',#light blue
@@ -42,7 +45,7 @@ class BashWrapper(object):
     def __init__(self):
         pass
 
-    def wrap(self, bashfile, writer=sys.stdout, stderr_okay=False):
+    def wrap(self, bashfile, writer=sys.stdout, stderr_okay=False, email_on_success=False):
         """Given filepath to bash script, execute commands and write output.
         stderr_okay determines whether to raise exception on stderr"""
         f = open(bashfile, 'r').readlines()
@@ -70,6 +73,13 @@ class BashWrapper(object):
               writer.flush()
         if writer!=sys.stdout:
             writer.close()
+        if email_on_success:
+            #Email when finished
+            hostname = socket.getfqdn()
+            subject = "Reports Finished %s" % hostname
+            content = "%s successfully completed at %s" % (hostname, datetime.datetime.now().isoformat())
+            sendemail(sender, destination, content, subject, username, password, relay)
+
 
     def execute(self, cmd, env, stderr_okay=False):
         """Given bash cmd as string and bash environment,
@@ -130,9 +140,6 @@ class BashWrapper(object):
     #UTIL FUNCTIONS
     ######
     def emailFailure(self, bashfile, cmd, exception, to_cellphone=False):
-        from email_settings import username, password, \
-            relay, sender, destination, cellphone_dest, cellphone_msg
-        import socket
         hostname = socket.getfqdn()
         content = """
         hostname: %s
@@ -145,28 +152,10 @@ class BashWrapper(object):
         subject = '%s failed' % (hostname)
 
         print("emailing traceback to %s" % ', '.join(destination))
-        self.sendemail(sender, destination, content, subject, username, password, relay)
+        sendemail(sender, destination, content, subject, username, password, relay)
         if to_cellphone:
           print("emailing msg to phone.  phone: %s msg: %s" % (cellphone_dest, cellphone_msg))
-          #self.sendemail(sender, cellphone_dest, cellphone_msg, '', username, password, relay)
-
-    def sendemail(self, sender, destination, content, subject, username, password, relay):
-        """Send email"""
-        from smtplib import SMTP_SSL as SMTP
-        from email.MIMEText import MIMEText
-        #msg content
-        msg = MIMEText(content, 'plain')
-        msg['Subject'] = subject
-        msg['From'] = sender
-
-        conn = SMTP()
-        conn.connect(relay)
-        conn.login(username, password)
-
-        try:
-            conn.sendmail(sender, destination, msg.as_string())
-        finally:
-            conn.close()
+          sendemail(sender, cellphone_dest, cellphone_msg, '', username, password, relay)
 
     def parseFile(self, f, get_funcs=False):
         cmds, funcs = self.strip_bash_funcs(f)
@@ -249,6 +238,7 @@ if __name__ == '__main__':
     parser.add_argument('filename', action="store")
     parser.add_argument('log_file', action="store", nargs="?", default=sys.stdout)
     parser.add_argument('--print', action="store_true", default=True)
+    parser.add_argument('--emailfinished', action="store_true", default=False)
     c = parser.parse_args(sys.argv[1:])
 
     a = BashWrapper()
@@ -260,8 +250,8 @@ if __name__ == '__main__':
                 self.stderr = sys.stderr
                 sys.stdout = self
                 sys.stderr = self
-        a.wrap(c.filename, Writer(c.log_file))
+        a.wrap(c.filename, Writer(c.log_file), email_on_success=c.emailfinished)
     else:
-        a.wrap(c.filename)
+        a.wrap(c.filename, email_on_success=c.emailfinished)
     # a.wrap(sys.argv[1], writer=None) #for example
 
