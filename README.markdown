@@ -1,6 +1,8 @@
-This repo contains some useful tools and mini projects.
+This repo contains some useful tools and projects.
 
 projects:
+
+* **Fixture Factory** - Automate Django fixture creation with this library.  The project is inspired by factoryboy and currently used by the HunchWorks project 
 
 * **IPython Scripting** - Write scripts that utilize IPython syntax and take advantage of the full IPython feature set.  Including shell integration, lazy syntax, magic functions and aliases, input and output history, etc.
 
