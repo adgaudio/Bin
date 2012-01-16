@@ -7,3 +7,6 @@
 [submodule "projects/fixturefactory"]
 	path = projects/fixturefactory
 	url = git@github.com:adgaudio/fixturefactory.git
+[submodule "projects/dot_files"]
+	path = projects/dot_files
+	url = git@github.com:adgaudio/dot_files.git
