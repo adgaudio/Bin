@@ -1,1 +1,0 @@
-../projects/tmux/tmux-sessions.sh
