@@ -1,4 +1,4 @@
-This repo contains some useful tools and projects.
+An random collection of (mostly) python code I wouldn't use in production.
 
 projects:
 
@@ -8,24 +8,23 @@ projects:
 
 * **Markov Chains** - for random sequence generation.  Works on input split by space or by character, depending on how you configure it
 
-* **spf13-vim** - My fork of spf13's vim project.  I use the python branch and provide an install and update script useful to anyone forking spf13's project.
-
-* **Tmux** - my .tmux.conf (very customized and useful), session manager script (also super useful) and backup script (from tmux src code)
-
-
 
 bin:
 
 * **bash_wrapper.py** - wrap bash scripts in python to enable colorized logging, controlled workflow, and some basic bash-python integration.
-* **cssparser.py** - reformat css from web into readable version
-* **ipyscript.py** - compile and execute IPython scripts
+* **bliptv_video_downloader.py** - given a bliptv video id
+ * **cssparser.py** - reformat css from web into readable version
 * **grepfieldmixin.py** - Make objects with useful variants of grep and field methods
+* **ipyscript.py** - compile and execute IPython scripts
+* **join.py** - Inner or Outer join two csvs on a given column (ie join key)
 * **markovchain.py** - sym link to markov project 
 * **matching_utils.py**
-* **mixins.py** - 'make' functions to make using mixins/multiple inheritance easier.
 * **md5_async.py** - asynchronous md5 sum against multiple files. 
+* **mixins.py** - 'make' functions to make using mixins/multiple inheritance easier.
 * **multidb_query.py** - execute sql queries against two (remote) databases, merge results, and drop into ipython shell. Super useful!  
+* **myip** - outputs public ip
 * **peekable.py** - make an iterator peekable (ie look ahead, but don't call next() )
+* **poisson_gradient_descent.py** - an example implementation that's both ugly and customized to a particular project
 * **tmux-sessions.sh** - sym link to tmux project
 * **tmux_backup.sh** - sym link to tmux project
 
@@ -33,4 +32,3 @@ bin/helper_files:
 * **email_settings.py** - used by bin/bash_wrapper.py to send emails
 * **query.sql** - used by multidb_query.py if no query doc provided
 
-Config - contains an old .screenrc, .tmux.conf, .vimrc (need to init submodule first), etc
