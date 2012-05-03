@@ -2,19 +2,25 @@
 """ Remotely execute query on multiple databases. Drop into ipython shell for data exploration
 TODO: make run comparison on stage and prod agnostic of which machine it's on"""
 import sys
-from utils import opendb
 from IPython import embed
+import pandas
+import psycopg2, psycopg2.extras
 
 def run(query, dbs, keep_alive=False, stdout=False):
   """given sql query as string, and sequence of db connections,
-  execute given query on given dbs and return results
+  execute given query on given dbs and return results.
+
+  dbs has form [{database: dbname, host: localhost,
+                 password: mypass, user: admin},
+                {}, ...]
   """
   queries = [x.strip() for x in query.strip().split(';') if x != '']
 
   try:
     conns, curs = [], []
     for d in dbs:
-      conn, cur = opendb(*d)
+      conn = psycopg2.connect(**d)
+      cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
       conns.append(conn)
       curs.append(cur)
 
@@ -27,7 +33,10 @@ def run(query, dbs, keep_alive=False, stdout=False):
         c.execute(q)
       # Fetch and store result from all cursors
       for cursor_id,c in enumerate(curs):
-        data[query_id][cursor_id] = c.fetchall()
+        result = [list(x) for x in c.fetchall()]
+        columns = sorted(c.index, key=lambda x: c.index[x])
+        data[query_id][cursor_id] = pandas.DataFrame(result, columns=columns)
+
   finally:
     if not keep_alive:
       [x.close() for x in conns]
@@ -109,16 +118,18 @@ def getrows(querydata, rownumbers):
 
 
 if __name__ == '__main__':
-  from settings import dbs
-  try:
-    QUERY = open(sys.argv[1], 'r').read()
-  except:
-    print 'from query import QUERY FAILED.  using default query.sql'
-    QUERY = open('helper_files/query.sql', 'r').read()
+    from settings import dbs # you need to define this yourself
+    try:
+        QUERY = open(sys.argv[1], 'r').read()
+    except:
+        print 'no query.sql file specified. using default query.sql'
+        QUERY = open('query.sql', 'r').read()
 
-  data, queries, conns, curs = run(QUERY, dbs, keep_alive=True, stdout=True)
-  testdata = lambda: test(data)
-  queries = [(c,x) for c,x in enumerate(queries)]
-  embed()
-  [x.close() for x in conns]
+    try:
+        data, queries, conns, curs = run(QUERY, dbs, keep_alive=True, stdout=True)
+        testdata = lambda: test(data)
+        queries = [(c,x) for c,x in enumerate(queries)]
+        embed()
+    finally:
+        [x.close() for x in conns]
 
