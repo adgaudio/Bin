@@ -43,10 +43,6 @@ PYAUDIO_FORMAT = pyaudio.paFloat32
 NUMPY_FORMAT = 'float32'
 STRUCT_FORMAT = 'f'
 
-
-#def add_enharmonics(arr, n):
-    #return arr
-
 def wave_generator(func, freq, duration=DURATION_SECONDS, sample_rate=SAMPLE_RATE):
     arr = np.arange(0, duration, 1.0/sample_rate)
     arr2 = func(2.0*np.pi*freq*arr)
@@ -64,6 +60,14 @@ def sine_wave(freq, **kwargs):
     return wave_generator(waveforms.sin, freq, **kwargs)
 def sawtooth_wave(freq, **kwargs):
     return wave_generator(waveforms.sawtooth, freq, **kwargs)
+
+def sine_with_overtones(freq, num_overtones):
+    waves = []
+    for i in range(1,2+num_overtones):
+        wave = wave_generator(waveforms.sin, freq*i) * 1./i
+        waves.append(wave)
+    wave = reduce(lambda y,x:x + y, waves)
+    return wave * 2./(max(wave)*2) # scale between -1 and 1
 
 def plot_fft(arr, args=('g.',)):
     pylab.plot(np.fft.fftfreq(arr.shape[-1]), abs(np.fft.fft(arr)), *args)
