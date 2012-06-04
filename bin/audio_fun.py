@@ -8,6 +8,15 @@ from scipy.signal import waveforms
 import struct
 import wave
 
+
+notes = 'A Bb B C C# D Eb E F F# G G#'.split()
+freqs = [440*pow(2, (1./12))**i for i in range(len(notes))] # equal temperment
+
+def gen_music(seq, used_notes, notes=notes, freqs=freqs):
+    used_freqs = [freqs[notes.index(x)] for x in used_notes]
+    return [sine_wave(used_freqs[x%len(used_freqs)], duration=.12)
+            for x in seq]
+
 def fib():
     n_1 = 0
     n = 1
@@ -26,12 +35,24 @@ def fib_example():
     music =  [sine_wave(x, duration=.5) for x in freqs%4 *100+220]
     play_arrs(music, pyaudio.PyAudio())
 
-notes = 'A Bb B C C# D Eb E F F# G G#'.split()
-freqs = [440*pow(2, (1./12))**i for i in range(len(notes))] # equal temperment
-notemap = {n:f for n,f in zip(notes[:12], freqs)}
+def fib_example2(used_notes='Bb Bb E E E Bb F'.split()):
+    """notes is a list of names for frequencies in the freqs list. 
+    ie notes could = ['a','b','c'] and freqs could = [440, 540, 600, ...]
+    """
+    seq = fib_arr(90)
+    music = gen_music(seq, used_notes)
+    print [used_notes[x%len(used_notes)] for x in seq]
+    #write_wave(music, '/tmp/output.wav')
+    play_arrs(music, pyaudio.PyAudio())
+
+
+def ekg_example():
+    seq = np.array([1, 2, 4, 6, 3, 9, 12, 8, 10, 5, 15, 18, 14, 7, 21, 24, 16, 20, 22, 11, 33, 27, 30, 25, 35, 28, 26, 13, 39, 36, 32, 34, 17, 51, 42, 38, 19, 57, 45, 40, 44, 46, 23, 69, 48, 50, 52, 54, 56, 49, 63, 60, 55, 65, 70, 58, 29, 87, 66, 62, 31, 93, 72, 64, 68, 74, 37, 111, 75, 78, 76, 80, 82])
+    music = gen_music(seq, 'A B C D E F G'.split())
+    play_arrs(music, pyaudio.PyAudio())
+
 
 ###############################
-
 
 
 DURATION_SECONDS = .5
@@ -108,7 +129,19 @@ def example(freq=440, dur=1):
     arr = sawtooth_wave(freq, duration=dur)
     arr2 = sine_wave(freq, duration=dur)
     arr = np.resize([arr,arr2], [1, len(arr)+len(arr2)])[0]
+
+    arr3 = sine_with_overtones(440, 5)
     p = pyaudio.PyAudio()
-    play_arrs([arr], p)
+
+    play_arrs([arr, arr3], p)
+    write_wave([arr, arr3], '/tmp/output.wav')
+
+    pylab.clf()
+    pylab.subplot('211')
     plot_fft(arr2)
+    pylab.subplot('212')
+    pylab.ylim(-1.2,1.2)
+    #pylab.xlim(10000,11000)
+    pylab.plot(arr3)
+    pylab.show()
 
