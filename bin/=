@@ -1,2 +1,2 @@
 #!/bin/bash
-echo "$@" | bc
+python -c "print $@"
