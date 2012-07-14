@@ -1,0 +1,24 @@
+    ...and the birthday problem...
+
+    what's the chance that a pair of artists will NOT share the same
+(50) line(s)?
+    (ie. the days of the year = total number of users, and each user has
+50 birthdays!)
+
+    p(not a pair) = 1 * p(a2|a1) * p(a3|a1 and a2) * ...
+                  = 1 * (n-freq_a1))/(n) * (n-(freq_a1+freq_a2))/(n)
+
+        where n is number of lines of input data * 50
+        and freq_aX = the number of lines that artist appeared on
+            Note: Because we want the pairs that occurred 50 or more
+times,
+            I'm setting the denominator = to 50*n. I not sure whether
+this is
+            actually correct.
+
+    And:
+
+    p(pair) = 1 - p(not a pair)
+
+
+
