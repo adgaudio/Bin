@@ -9,6 +9,7 @@ virtualenv ./alex_gaudio_demo
 pip install numpy
 pip install nltk
 pip install pandas
+pip install scipy
 
 # unzip data
 tar xvzf Artist_lists_small.txt.tar.gz
