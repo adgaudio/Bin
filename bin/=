@@ -1,2 +1,7 @@
 #!/bin/bash
-python -c "print $@"
+
+if [[ "$@" != "" ]] ; then
+  python -c "print $@"
+else
+  python -c "from sys import stdin; print eval(stdin.read())"
+fi
