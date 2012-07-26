@@ -1,7 +1,69 @@
 #!/bin/bash
+maybe="
+def maybe(f):
+  def _maybe(*args, **kwargs):
+    try: return f(*args, **kwargs)
+    except Exception, e: 
+      print e
+      return 0
+  return _maybe;"
+stdin="
+from sys import stdin;import sys;"
+tonum="
+def tonum(readable):
+  import numpy
+  return numpy.fromstring(readable.read(), dtype=float, sep=' ')
+"
+plot="
+def plot(data):
+  import pylab
+  pylab.plot(data)
+  pylab.show(block=True)
+  return
+"
 
-if [[ "$@" != "" ]] ; then
-  python -c "print $@"
-else
-  python -c "from sys import stdin; print eval(stdin.read())"
-fi
+python -c "${maybe}${stdin}${plot}${tonum}sys.stderr.write('');print $@"
+
+
+: <<'END_COMMENT_BLOCK'
+ EXAMPLES
+
+  cat > tmp_file
+  1
+  1
+  1
+  ^D
+
+Echo results back - this is just to show functionality
+  cat tmp_file |= 'stdin.read()'
+
+Sum a single column of numbers
+  cat tmp_file | = 'sum(map(int, stdin))'
+  = 'sum([1,1,1,1])'
+
+Perform calculations
+  = 1+1
+  = '4*5/30.'
+
+PLOT STUFF!
+  = 'plot([1,2,3,4,1,2,3,4])' &
+
+Examine all new lines and carriage returns in file
+  cat tmp_file | = 'map(lambda x:x, stdin)'
+  cat tmp_file | = 'repr(stdin.read())'
+
+Try doing stupid stuff
+  = 'maybe(int)("a")'
+  = 'sum(map(maybe(int),[1,1,"a","1",1]))'
+
+Import libraries and go nuts!
+  = ';import scipy; print scipy.randn(10)'
+  = ';import scipy; plot(scipy.randn(1000))' &
+
+Visualize the frequency distribution of your most common words
+cat huge_text_file |= ';import nltk;nltk.FreqDist(nltk.word_tokenize(stdin.read())).plot()'
+
+If you love this, here's my inspiration:
+  https://github.com/holman/spark/
+
+END_COMMENT_BLOCK
