@@ -2,9 +2,11 @@
     - Convert ObjectId to $oid
     - Convert datetime to integer values
     - Change single quotes to double quotes where appropriate
+    - Write each document to a single line
 """
-import re 
 from datetime import datetime
+import re
+import simplejson
 
 def date2int(match, time_format='"%a, %b %d %Y, %I:%M %p %Z"', grp_idx=0):
     """Given a time string in the first group of an SLE match object,
@@ -13,9 +15,8 @@ def date2int(match, time_format='"%a, %b %d %Y, %I:%M %p %Z"', grp_idx=0):
     as_int = lambda x: str(datetime.strptime(x, time_format).toordinal())
     return match.group().replace(time, as_int(time))
 
-
-if __name__ == '__main__':
-    f = open('./data/input.json').read()
+def main(file_obj, outfile_obj):
+    f = file_obj.read()
     # Convert 'new Date' to $date
     f2 = re.sub(r'new Date\(["\'](.*?)["\']\)', r'{ "$date" : "\1" }', f)
     f2 = re.sub('{ *"\$date" *: *([\'"].*?[\'"]) *}', date2int, f2)
@@ -25,5 +26,14 @@ if __name__ == '__main__':
     # Convert single quotes to double quotes when beside a {, (, }, or )
     f2 = re.sub(r'([\:\{\(] ?)\'', r'\1"', f2)
     f2 = re.sub(r'\'( ?[\}\)])', r'"\1', f2)
-    open('./data/input2.json', 'w').write(f2)
+    # Write each document to a single line
+    f3 = simplejson.loads(f2)
+    with outfile_obj as openfile:
+        for elem in f3:
+            openfile.write(simplejson.dumps(elem)+'\n')
+
+if __name__ == '__main__':
+    f = open('./data/input.json')
+    fout = open('./data/input2.json', 'w')
+    main(f, fout)
 
