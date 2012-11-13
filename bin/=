@@ -10,13 +10,13 @@ def maybe(f):
 stdin="
 from sys import stdin;import sys;"
 tonum="
+import numpy
 def tonum(readable):
-  import numpy
   return numpy.fromstring(readable.read(), dtype=float, sep=' ')
 "
 plot="
+import pylab
 def plot(data):
-  import pylab
   pylab.plot(data)
   pylab.show(block=True)
   return
