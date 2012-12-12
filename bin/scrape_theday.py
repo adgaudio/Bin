@@ -1,14 +1,15 @@
 """Scrape theday.com for dad's articles
 Put all those articles into a pdf book ready to be bound
 (christmas present)"""
-import datetime
-import requests
 import BeautifulSoup
-import jinja2
+import datetime
 import gevent.pool
 import gevent.monkey
+import hashlib
+import jinja2
 import pickle
 import re
+import requests
 import os
 
 gevent.monkey.patch_all(thread=False)
@@ -85,85 +86,103 @@ def scrape(fp, fp2, overwrite=False):
             pickle.dump([j.get() for j in jobs], writer)
 
 
-def load(fp, fp2, jinja_template_fp, out_dir):
-    urls = pickle.load(open(fp2, 'r'))
-    articles = pickle.load(open(fp, 'r'))
-    soupify = lambda s: BeautifulSoup.BeautifulSoup(s)
+def soupify(var):
+    return BeautifulSoup.BeautifulSoup(var)
 
-    bad_titles = ["Honor Rolls",
+
+def _extract_datetime(var):
+    var = soupify(var).text.split()[1].encode('utf-8')
+    var = datetime.datetime.strptime(var, "%m/%d/%Y")
+    return var.strftime('%s')
+
+
+def clean_content(content):
+    content = re.sub(
+        '[\x80\xe2\x9d]', '"', content)  # clean retarded chars
+    soup = soupify(content)
+    c = lambda pattern: re.compile(pattern)
+    patterns = (
+        c('(?i)(Dr\.* *)?Joh*n Gaudio is a( New London-based)? cardiologist(.* New London)?.*'),
+        c("Article UID=.*"),
+        c('(?i)jcgaudio@pol.net.*'),
+        c('(?i)This is the opinion of (Dr. )?Joh*n Gaudio\.*'),
+    )
+    for pattern in patterns:
+        res = soup.find(text=pattern)
+        if not res:
+            continue
+        for parent in res.parentGenerator():
+            if parent.name == 'p':
+                parent.extract()
+                break
+    [x.extract() for x in soup.findAll(['br'])]  # odd line spacing
+    return soup.prettify().strip()
+
+
+def make_html_book(fp, fp2, jinja_template_fp, jinja_toc_template_fp,
+                   bad_titles, out_fp):
+    articles = pickle.load(open(fp, 'r'))
+    titles = {}  # store article title:unique id for that title
+    templates = []  # for toc
+    articles = sorted(articles, key=lambda x: _extract_datetime(x[1][0]))
+    for (title, (published_at, updated_at), content) in articles:
+        title_text = soupify(title).text
+        if title_text in bad_titles or title_text in titles:
+            continue
+        title_hash = hashlib.sha1(title_text).hexdigest()[:4]
+        titles[title_text] = title_hash
+        published_at = soupify(published_at).text.split()[1].encode('utf-8')
+        published_at = datetime.datetime.strptime(
+            published_at, "%m/%d/%Y").strftime("%B %d, %Y")
+        content = clean_content(content)
+        template = jinja2.Template(open(jinja_template_fp, 'r').read())
+        html = template.render(**locals())
+        templates.append(html)
+    book_template = jinja2.Template(open(jinja_toc_template_fp, 'r').read())
+    book_html = book_template.render(titles=sorted(titles.items()),
+                                     templates=templates)
+    with open(out_fp, 'w') as f:
+        f.write(book_html)
+
+
+if __name__ == '__main__':
+    from os.path import dirname, abspath, join
+    # Big fat ass list of junk and relevant works we're excluding
+    bad_titles = ("Honor Rolls",
                   'Lyme/Old Lyme Middle School',
                   'Lyme-Old Lyme Middle School',
                   'Fitch Senior High School',
+                  "Vikings Tie For ECC Large Title",
+                  "Ledyard Girls Hand Vikes Their First Loss Of Season",
+                  "Stonington Sweeps New London",
                   'Woodstock Boys Clinch Share Of Large Crown',
+                  "Tennis",
+                  "Business Leaders Revive NL&#39;s Sailfest Road Race",
+                  "It&#39;s The Lifestyle, Stupid",
                   "Reporters face off against five of the world's hottest peppers, and live (barely)",
                   "A Night To Remember",
-                  #'Of Women and Mothers', # ABOUT MOM! Really cool
+                  'Of Women and Mothers',  # ABOUT MOM! Really cool
                   #'The Art of Femininity', # ABOUT MOM, but same as above
 
                   #'Let Elderly Take A Test To Assess Driving Skills', # An editorial about dad's article
                   #'Sex education must be comprehensive',  # Another editorial review, but not so great
                   #'History's smoke screen', # A great article from one of dad's patients.
                   #'Cover To Cover', # A patient's article about dad + others
-                  #'Salazar Heart Attack Should Serve As Warning To Runners Of All Abilities' # ..
+                  'Salazar Heart Attack Should Serve As Warning To Runners Of All Abilities',  # ..
                   #'When Docs Made House Calls' #..
                   #'No joke, red wine is good for you' # ..
-                  "Tennis",
-                  "Vikings Tie For ECC Large Title",
-                  "Ledyard Girls Hand Vikes Their First Loss Of Season",
-                  "Stonington Sweeps New London",
-                  "Business Leaders Revive NL&#39;s Sailfest Road Race",
-                  ]
-    n = 0
-
-    def extract_datetime(var):
-        var = soupify(var).text.split()[1].encode('utf-8')
-        var = datetime.datetime.strptime(var, "%m/%d/%Y")
-        return var.strftime('%s')
-    for (title, (published_at, updated_at), content) in sorted(
-            articles, key=lambda x: extract_datetime(x[1][0])):
-        title_text = soupify(title).text
-        if title_text in bad_titles:
-            continue
-        else:
-            print title_text
-
-            bad_titles.append(title_text)
-        n += 1
-        published_at = soupify(published_at).text.split()[1].encode('utf-8')
-        published_at = datetime.datetime.strptime(
-            published_at, "%m/%d/%Y").strftime("%B %d, %Y")
-        content = re.sub(
-            '[\x80\xe2\x9d]', '"', content)  # clean retarded chars
-        content = re.sub('(?i)jcgaudio@pol.net.*', '', content)
-        content = re.sub(
-            '(?i)Joh*n Gaudio is a cardiologist .* New London.*', '', content)
-        content = re.sub(
-            '(?i)Joh*n Gaudio is a New London-based cardiologist.*', '', content)
-        content = re.sub(
-            '(?i)doctor@theday.com', '', content)
-        content = re.sub(
-            '(?i)This is the opinion of .* Joh*n Gaudio.*', '', content)
-
-        content = content.strip()
-        #from IPython import embed ; embed()
-        #break
-        template = jinja2.Template(open(jinja_template_fp, 'r').read())
-        html = template.render(**locals())
-        fname = "%03d.html" % (n)
-        with open(os.path.join(out_dir, fname), 'w') as f:
-            f.write(html)
-
-
-if __name__ == '__main__':
-    from os.path import dirname, abspath, join
+                  # introduces dad, kinda, but not cutting it
+                  "Do You Really Have A Shot At Getting A Flu Shot?"
+                  )
     cwd = dirname(abspath(__file__))
     fp = join(cwd, 'dads_articles.pickle')
     fp2 = join(cwd, 'dads_urls')
     jinja_template_fp = join(cwd, 'dads_jinja.html')
-    out_dir = join(cwd, 't')
+    jinja_toc_template_fp = join(cwd, 'dads_jinja_toc.html')
+    out_fp = join(cwd, 'dads_book.html')
 
     scrape(fp, fp2)
-    load(fp, fp2, jinja_template_fp, out_dir)
-
-    cmd = "prince $(ls %s/*html|sort -n)  -o ~/o.pdf" % out_dir
+    make_html_book(fp, fp2, jinja_template_fp, jinja_toc_template_fp,
+                   bad_titles, out_fp)
+    cmd = "prince %s -o %s" % (out_fp, out_fp.replace('html', 'pdf'))
     os.system(cmd)
