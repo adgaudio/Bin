@@ -2,6 +2,7 @@
 Put all those articles into a pdf book ready to be bound
 (christmas present)"""
 import BeautifulSoup
+from collections import defaultdict
 import datetime
 import gevent.pool
 import gevent.monkey
@@ -119,6 +120,21 @@ def clean_content(content):
     return soup.prettify().strip()
 
 
+def capitalize_index(title_text, start):
+    """Capitalize first letter after given index"""
+    title_text = list(title_text)
+    offset = 1
+    while not title_text[start + offset].isalpha():
+        offset += 1
+        if start + offset >= len(title_text) - 1:
+            break
+    title_text[start + offset] = title_text[start + offset].capitalize()
+    title_text = ''.join(title_text)
+    if offset > 2:
+        print 'WARNING: capitalizing %s at index %s' % (title_text, start + offset)
+    return title_text
+
+
 def make_html_book(fp, fp2, jinja_template_fp, jinja_toc_template_fp,
                    bad_titles, out_fp):
     articles = pickle.load(open(fp, 'r'))
@@ -129,17 +145,29 @@ def make_html_book(fp, fp2, jinja_template_fp, jinja_toc_template_fp,
         title_text = soupify(title).text
         if title_text in bad_titles or title_text in titles:
             continue
+
+        print title_text
+        title_text = reduce(capitalize_index,
+                            [w.start()
+                                for w in re.finditer("( '|-| )", title_text)],
+                            title_text.capitalize())
+        print title_text
         title_hash = hashlib.sha1(title_text).hexdigest()[:4]
-        titles[title_text] = title_hash
         published_at = soupify(published_at).text.split()[1].encode('utf-8')
-        published_at = datetime.datetime.strptime(
-            published_at, "%m/%d/%Y").strftime("%B %d, %Y")
+        published_at = datetime.datetime.strptime(published_at, "%m/%d/%Y")
+        year = published_at.year
+        published_at = published_at.strftime("%B %d, %Y")
+        titles[title_text] = (title_hash, year)
         content = clean_content(content)
         template = jinja2.Template(open(jinja_template_fp, 'r').read())
         html = template.render(**locals())
         templates.append(html)
     book_template = jinja2.Template(open(jinja_toc_template_fp, 'r').read())
-    book_html = book_template.render(titles=sorted(titles.items()),
+
+    titles_by_year = defaultdict(list)
+    for title_text, (title_hash, year) in titles.items():
+        titles_by_year[year].append((title_text, title_hash))
+    book_html = book_template.render(titles_by_year=titles_by_year.items(),
                                      templates=templates)
     with open(out_fp, 'w') as f:
         f.write(book_html)
@@ -160,19 +188,18 @@ if __name__ == '__main__':
                   "Business Leaders Revive NL&#39;s Sailfest Road Race",
                   "It&#39;s The Lifestyle, Stupid",
                   "Reporters face off against five of the world's hottest peppers, and live (barely)",
+                  'Salazar Heart Attack Should Serve As Warning To Runners Of All Abilities',  # ..
+                  "Do You Really Have A Shot At Getting A Flu Shot?"  # introduces dad, kinda, but not cutting it
                   "A Night To Remember",
                   'Of Women and Mothers',  # ABOUT MOM! Really cool
-                  #'The Art of Femininity', # ABOUT MOM, but same as above
+                  'The Art of Femininity', # ABOUT MOM, but same as above
 
-                  #'Let Elderly Take A Test To Assess Driving Skills', # An editorial about dad's article
-                  #'Sex education must be comprehensive',  # Another editorial review, but not so great
-                  #'History's smoke screen', # A great article from one of dad's patients.
-                  #'Cover To Cover', # A patient's article about dad + others
-                  'Salazar Heart Attack Should Serve As Warning To Runners Of All Abilities',  # ..
-                  #'When Docs Made House Calls' #..
-                  #'No joke, red wine is good for you' # ..
-                  # introduces dad, kinda, but not cutting it
-                  "Do You Really Have A Shot At Getting A Flu Shot?"
+                  'Let Elderly Take A Test To Assess Driving Skills', # An editorial about dad's article
+                  'Sex education must be comprehensive',  # Another editorial review, but not so great
+                  "History's smoke screen", # A great article from one of dad's patients.
+                  'Cover To Cover', # A patient's article about dad + others
+                  'When Docs Made House Calls' #..
+                  'No joke, red wine is good for you' # ..
                   )
     cwd = dirname(abspath(__file__))
     fp = join(cwd, 'dads_articles.pickle')
