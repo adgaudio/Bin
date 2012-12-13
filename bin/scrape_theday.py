@@ -2,7 +2,7 @@
 Put all those articles into a pdf book ready to be bound
 (christmas present)"""
 import BeautifulSoup
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import datetime
 import gevent.pool
 import gevent.monkey
@@ -127,48 +127,65 @@ def capitalize_index(title_text, start):
     while not title_text[start + offset].isalpha():
         offset += 1
         if start + offset >= len(title_text) - 1:
+            offset = len(title_text) - start - 1
             break
     title_text[start + offset] = title_text[start + offset].capitalize()
     title_text = ''.join(title_text)
     if offset > 2:
-        print 'WARNING: capitalizing %s at index %s' % (title_text, start + offset)
+        print 'WARNING: capitalizing at index %s: %s' % (start + offset, title_text)
     return title_text
 
 
-def make_html_book(fp, fp2, jinja_template_fp, jinja_toc_template_fp,
-                   bad_titles, out_fp):
-    articles = pickle.load(open(fp, 'r'))
-    titles = {}  # store article title:unique id for that title
+def make_article_html(articles_fp, jinja_env):
+    get_title_hash = lambda txt: hashlib.sha1(txt).hexdigest()[:4]
+    articles = pickle.load(open(articles_fp, 'r'))
+    titles = OrderedDict()  # store article title:unique id for that title
     templates = []  # for toc
     articles = sorted(articles, key=lambda x: _extract_datetime(x[1][0]))
     for (title, (published_at, updated_at), content) in articles:
         title_text = soupify(title).text
         if title_text in bad_titles or title_text in titles:
             continue
-
-        print title_text
         title_text = reduce(capitalize_index,
                             [w.start()
-                                for w in re.finditer("( '|-| )", title_text)],
-                            title_text.capitalize())
-        print title_text
-        title_hash = hashlib.sha1(title_text).hexdigest()[:4]
+                                for w in re.finditer("( '|-| |[^ ]\.)", title_text)],
+                            capitalize_index(title_text, -1))
+        title_hash = get_title_hash(title_text)
         published_at = soupify(published_at).text.split()[1].encode('utf-8')
         published_at = datetime.datetime.strptime(published_at, "%m/%d/%Y")
         year = published_at.year
         published_at = published_at.strftime("%B %d, %Y")
         titles[title_text] = (title_hash, year)
-        content = clean_content(content)
-        template = jinja2.Template(open(jinja_template_fp, 'r').read())
+
+        if title_text == "Do You Really Have A Shot At Getting A Flu Shot?":
+            title = title.replace(title_text, "Introduction")
+            titles.pop(title_text)
+            title_text = "Introduction"
+            title_hash = get_title_hash(title_text)
+            titles[title_text] = (title_hash, year)
+            content = jinja_env.get_template("dads_jinja_introduction.html").render()
+        else:
+            content = clean_content(content)
+        template = jinja_env.get_template(jinja_template_fp)
         html = template.render(**locals())
         templates.append(html)
-    book_template = jinja2.Template(open(jinja_toc_template_fp, 'r').read())
-
     titles_by_year = defaultdict(list)
     for title_text, (title_hash, year) in titles.items():
         titles_by_year[year].append((title_text, title_hash))
+    return templates, titles_by_year
+
+
+def make_html_book(articles_fp, jinja_template_fname, jinja_toc_template_fname,
+                   jinja_template_dir, bad_titles, out_fp):
+    env = jinja2.Environment()
+    env.loader = jinja2.FileSystemLoader(jinja_template_dir)
+    templates, titles_by_year = make_article_html(articles_fp, env)
+    book_template = env.get_template(jinja_toc_template_fp)
     book_html = book_template.render(titles_by_year=titles_by_year.items(),
                                      templates=templates)
+    assert all([title_text not in bad_titles
+                for title_text in (tup[0] for titles in titles_by_year.values()
+                                   for tup in titles)])
     with open(out_fp, 'w') as f:
         f.write(book_html)
 
@@ -189,27 +206,38 @@ if __name__ == '__main__':
                   "It&#39;s The Lifestyle, Stupid",
                   "Reporters face off against five of the world's hottest peppers, and live (barely)",
                   'Salazar Heart Attack Should Serve As Warning To Runners Of All Abilities',  # ..
-                  "Do You Really Have A Shot At Getting A Flu Shot?"  # introduces dad, kinda, but not cutting it
+                  #"Do You Really Have A Shot At Getting A Flu Shot?",  # introduces dad, kinda, but not cutting it
                   "A Night To Remember",
                   'Of Women and Mothers',  # ABOUT MOM! Really cool
-                  'The Art of Femininity', # ABOUT MOM, but same as above
+                  'The Art of Femininity',  # ABOUT MOM, but same as above
 
-                  'Let Elderly Take A Test To Assess Driving Skills', # An editorial about dad's article
-                  'Sex education must be comprehensive',  # Another editorial review, but not so great
-                  "History's smoke screen", # A great article from one of dad's patients.
-                  'Cover To Cover', # A patient's article about dad + others
-                  'When Docs Made House Calls' #..
-                  'No joke, red wine is good for you' # ..
+                  'Let Elderly Take A Test To Assess Driving Skills',
+                  # An editorial about dad's article
+                  'Sex education must be comprehensive',
+                  # Another editorial review, but not so great
+                  "History's smoke screen",
+                  # A great article from one of dad's patients.
+                  'Cover To Cover',  # A patient's article about dad + others
+                  'When Docs Made House Calls',  # ..
+                  'No joke, red wine is good for you',  # ..
                   )
     cwd = dirname(abspath(__file__))
     fp = join(cwd, 'dads_articles.pickle')
-    fp2 = join(cwd, 'dads_urls')
-    jinja_template_fp = join(cwd, 'dads_jinja.html')
-    jinja_toc_template_fp = join(cwd, 'dads_jinja_toc.html')
-    out_fp = join(cwd, 'dads_book.html')
+    fp2 = join(cwd, 'dads_urls.pickle')
+    jinja_template_fp = 'dads_jinja.html'
+    jinja_toc_template_fp = 'dads_jinja_toc.html'
+    jinja_template_dir = cwd
+    out_fp2 = join(cwd, 'dads_book.pdf')
 
     scrape(fp, fp2)
-    make_html_book(fp, fp2, jinja_template_fp, jinja_toc_template_fp,
-                   bad_titles, out_fp)
-    cmd = "prince %s -o %s" % (out_fp, out_fp.replace('html', 'pdf'))
+    make_html_book(fp, jinja_template_fp, jinja_toc_template_fp,
+                   jinja_template_dir, bad_titles, out_fp2.replace('pdf', 'html'))
+    cmd = "prince %s -o %s" % (out_fp2.replace('pdf', 'html'), out_fp2)
+    os.system(cmd)
+    out_fp1 = join(cwd, 'pre_toc.pdf')
+    cmd = "prince %s -o %s" % (out_fp1.replace('pdf', 'html'), out_fp1)
+    os.system(cmd)
+    out_fp3 = "richter_gaudio_book_block.pdf"
+    cmd = ("gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite"
+           " -sOutputFile={out_fp3} {out_fp1} {out_fp2}").format(**locals())
     os.system(cmd)
