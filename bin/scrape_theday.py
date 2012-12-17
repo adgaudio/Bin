@@ -144,12 +144,16 @@ def make_article_html(articles_fp, jinja_env):
     articles = sorted(articles, key=lambda x: _extract_datetime(x[1][0]))
     for (title, (published_at, updated_at), content) in articles:
         title_text = soupify(title).text
-        if title_text in bad_titles or title_text in titles:
+        if title_text in bad_titles:
             continue
+        old_title_text = title_text
         title_text = reduce(capitalize_index,
                             [w.start()
                                 for w in re.finditer("( '|-| |[^ ]\.)", title_text)],
                             capitalize_index(title_text, -1))
+        title = title.replace(old_title_text, title_text)
+        if title_text in titles:
+            continue
         title_hash = get_title_hash(title_text)
         published_at = soupify(published_at).text.split()[1].encode('utf-8')
         published_at = datetime.datetime.strptime(published_at, "%m/%d/%Y")
@@ -167,7 +171,10 @@ def make_article_html(articles_fp, jinja_env):
         else:
             content = clean_content(content)
         template = jinja_env.get_template(jinja_template_fp)
-        html = template.render(**locals())
+        html = template.render(published_at=published_at,
+                               title_hash=title_hash,
+                               title_text=title,
+                               content=content)
         templates.append(html)
     titles_by_year = defaultdict(list)
     for title_text, (title_hash, year) in titles.items():
