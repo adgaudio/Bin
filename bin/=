@@ -21,8 +21,11 @@ def plot(data):
   pylab.show(block=True)
   return
 "
+imports="
+from numpy import *
+"
 
-python -c "${maybe}${stdin}${plot}${tonum}sys.stderr.write('');print $@"
+python -c "${imports}${maybe}${stdin}${plot}${tonum}sys.stderr.write('');print $@"
 
 
 : <<'END_COMMENT_BLOCK'
