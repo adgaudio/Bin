@@ -1,0 +1,167 @@
+/* CSS styling for a book, with page numbering and margins.  Specifically designed to work with Prince XML.  Make sure you have the appropriate fonts. 
+ *
+ * By Alex Gaudio
+ * */
+
+@page {
+  size: 152.4mm 228.6mm;
+  margin-top:20.32mm;
+  margin-bottom:20.32mm;
+}
+
+@page :left {
+  margin-left: 19.05mm;
+  margin-right: 25.4mm;
+}
+
+@page :right {
+  margin-left: 25.4mm;
+  margin-right: 19.05mm;
+}
+
+@page main {
+  @bottom-right {
+    content: counter(page);
+    font-size: 85%;
+    text-align: center;
+
+  }
+}
+
+@page toc {
+  @bottom-right {
+    content: counter(page, lower-roman);
+    font-size: 85%;
+    text-align: center;
+  }
+  /*@top {*/
+    /*content: "Table of Contents";*/
+    /*font-family:"GillSans", "Tahoma","Helvetica";*/
+  /*}*/
+}
+
+@page toc :first {
+  @top { content: " " }
+}
+
+@page blankpage {
+}
+
+.chapter {
+  page-break-before: always;
+}
+
+.blankpage {
+  page: blankpage;
+}
+
+.blankpage::after {
+    content: " ";
+    display: block;
+    page-break-before: always;
+}
+
+/*.main::before {*/
+  /*content: " ";*/
+  /*display: block:*/
+  /*page-break-after: right;*/
+/*}*/
+.main {
+  page: main;
+  counter-reset: page 1;
+}
+
+.titlepage {
+  margin-top: 60%;
+  page-break-after: always;
+}
+.titlepage h1 {
+  font-size: 30pt;
+}
+.titlepage h2 {
+  float: bottom;
+  font-family:"GillSans-Light";
+  margin-bottom: 10%;
+  font-size: 19pt;
+}
+
+.centered {
+  text-align: center;
+}
+
+.copyrightpage {
+  page-break-after: always;
+  margin-top: 140%;
+  /*text-align: center;*/
+}
+
+.dedicationpage {
+  page-break-after: always;
+  margin-top: 75%;
+  text-align: center;
+}
+
+.forwardpage {
+  page-break-before: always;
+  @top {
+    display: none;
+  }
+}
+
+#forwardpagetoc a::after{
+  content: leader(' ') target-counter(attr(href), page, lower-roman);
+}
+
+.toc {
+  page: toc;
+}
+
+.toc ul *{
+  text-decoration: none;
+  line-height: 130%;
+}
+
+.toc ul li a::after {
+  content: leader(' ') target-counter(attr(href), page);
+}
+
+p, ul, a {
+  font-family:"Book Antiqua","Palatino","Aldus","Zapf Calligraphic","Georgia","Helvetica";
+  /*font-family: "Georgia","Helvetica";*/
+  font-size: 10.5pt;
+  line-height: 150%;
+  color: inherit;
+  /*page-break-inside:avoid;*/
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family:"GillSans", "Tahoma","Helvetica";
+  text-align: center;
+}
+
+h1 {
+  font-size: 19pt;
+}
+
+ul {
+  list-style-type: none;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+li {
+  padding-top: .5mm;
+  padding-bottom: .5mm;
+}
+
+.header {
+  /*the title and everything above it*/
+  text-align: center;
+}
+
+.separator {
+  /*the line that separates the header from the title*/
+  /*border-bottom: 1px solid rgba(255, 255, 255, 0.2);*/
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+
