@@ -11,12 +11,10 @@ stdin="
 from sys import stdin;import sys;"
 tonum="
 def tonum(readable):
-  import numpy
   return numpy.fromstring(readable.read(), dtype=float, sep=' ')
 "
 plot="
 def plot(data):
-  import pylab
   pylab.plot(data)
   pylab.show(block=True)
   return
@@ -32,9 +30,15 @@ def df(header=True, enable_plot=True):
   else:
     columns = None
   return pandas.DataFrame.from_records([x.split(',') for x in stdin.readlines()], columns=columns)
+
+"
+imports="
+from numpy import *
+import numpy
+import pylab
 "
 
-python -c "${maybe}${stdin}${plot}${tonum}${pandas_df}sys.stderr.write('');print $@"
+python -c "${imports}${maybe}${stdin}${plot}${tonum}${pandas_df}sys.stderr.write('');print $@"
 
 
 : <<'END_COMMENT_BLOCK'
