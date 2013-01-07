@@ -7,8 +7,6 @@ def maybe(f):
       print e
       return 0
   return _maybe;"
-stdin="
-from sys import stdin;import sys;"
 tonum="
 def tonum(readable):
   return numpy.fromstring(readable.read(), dtype=float, sep=' ')
@@ -22,9 +20,7 @@ def plot(data):
 pandas_df="
 def df(header=True, enable_plot=True):
   if enable_plot:
-    import pylab
     pylab.ion()
-  import pandas
   if header:
     columns = stdin.readline().split(',')
   else:
@@ -36,9 +32,12 @@ imports="
 from numpy import *
 import numpy
 import pylab
+import pandas
+import sys
+from sys import stdin
 "
 
-python -c "${imports}${maybe}${stdin}${plot}${tonum}${pandas_df}sys.stderr.write('');print $@"
+python -c "${imports}${maybe}${plot}${tonum}${pandas_df}sys.stderr.write('');print $@"
 
 
 : <<'END_COMMENT_BLOCK'
