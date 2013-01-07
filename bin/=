@@ -10,19 +10,31 @@ def maybe(f):
 stdin="
 from sys import stdin;import sys;"
 tonum="
-import numpy
 def tonum(readable):
+  import numpy
   return numpy.fromstring(readable.read(), dtype=float, sep=' ')
 "
 plot="
-import pylab
 def plot(data):
+  import pylab
   pylab.plot(data)
   pylab.show(block=True)
   return
 "
+pandas_df="
+def df(header=True, enable_plot=True):
+  if enable_plot:
+    import pylab
+    pylab.ion()
+  import pandas
+  if header:
+    columns = stdin.readline().split(',')
+  else:
+    columns = None
+  return pandas.DataFrame.from_records([x.split(',') for x in stdin.readlines()], columns=columns)
+"
 
-python -c "${maybe}${stdin}${plot}${tonum}sys.stderr.write('');print $@"
+python -c "${maybe}${stdin}${plot}${tonum}${pandas_df}sys.stderr.write('');print $@"
 
 
 : <<'END_COMMENT_BLOCK'
