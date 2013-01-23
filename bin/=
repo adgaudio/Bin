@@ -18,14 +18,18 @@ def plot(data):
   return
 "
 pandas_df="
-def df(header=True, enable_plot=True):
+def df(stdin_func=None, header=True, enable_plot=True):
   if enable_plot:
     pylab.ion()
   if header:
     columns = stdin.readline().split(',')
   else:
     columns = None
-  return pandas.DataFrame.from_records([x.split(',') for x in stdin.readlines()], columns=columns)
+  if stdin_func:
+    data = [stdin_func(x) for x in stdin.readlines()]
+  else:
+    data = [x.split(',') for x in stdin.readlines()]
+  return pandas.DataFrame.from_records(data, columns=columns)
 
 "
 imports="
