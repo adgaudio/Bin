@@ -28,10 +28,11 @@ def knapsack(v, w, W):
 
                 new_potential_optimum = v[i] + Vmap[i - 1, W_max - w[i]]  # aka the maximum value that can be made if we must include this element in the knapsack
 
-                Vmap[i, W_max] = max(previous_optimum,  # previous optimal value doesn't consider this ith element
-                                     new_potential_optimum)
-
-                possible_items_in_knapsack[i, W_max] = 1
+                if previous_optimum > new_potential_optimum:
+                    Vmap[i, W_max] = previous_optimum  # previous optimal value doesn't consider this ith element
+                else:
+                    Vmap[i, W_max] = new_potential_optimum
+                    possible_items_in_knapsack[i, W_max] = 1
             else:
                 # it doesn't fit, so the optimum value doesn't include this
                 # item, and the knapsack's optimum value at this point is the
@@ -41,17 +42,19 @@ def knapsack(v, w, W):
     # figure out which items are actually in the knapsack
     W_tmp = W - 1
     item_indices = []
-    for i in range(len(v)):
+    for i in reversed(range(len(v))):
         if possible_items_in_knapsack[i, W_tmp]:
             item_indices.append(i)
             W_tmp -= w[i]
+    #print possible_items_in_knapsack
+    #print Vmap
     return Vmap[len(v) - 1, W - 1], item_indices
 
 
 if __name__ == '__main__':
     values = array([10, 4, 3, 7])
     weights = array([6, 4, 3, 5])
-    max_weight = 25
+    max_weight = 10
 
     max_value, item_indices = knapsack(values, weights, max_weight)
     print 'for items with:'
