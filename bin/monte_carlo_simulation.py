@@ -28,9 +28,9 @@ def bin_sampler(num_items, num_bins, bin_size, guarantee_unique=True):
     the sampler would be much faster..."""
     assert num_items >= bin_size
     if guarantee_unique:
-        choices = np.arange(0, num_items)
-        bins = np.array([np.random.choice(choices , replace=False, size=bin_size)
-                for _ in xrange(num_bins)])
+        choices = np.arange(num_items)
+        bins = np.array([np.random.choice(choices, replace=False, size=bin_size)
+                         for _ in xrange(num_bins)])
         #for i in range(num_bins):
             #assert len(np.unique(bins[i, :])) == bin_size
     else:
@@ -53,7 +53,7 @@ def grouped_bin_sampler(group_sizes, min_per_group, num_bins, bin_size):
     NOTE: While the indices are selected randomly each bin is not randomly sorted.
     """
     assert bin_size >= min_per_group * len(group_sizes)
-    samples = np.empty((num_bins, 0))
+    samples = np.empty((num_bins, 0), dtype='int')
     start = 0
     for end in group_sizes:
         new_samples = bin_sampler(num_items=end - start,
@@ -84,7 +84,7 @@ def find_best_bin(v, w, num_bins, bin_size, max_weight,
     num_items = len(v)
     assert len(v) == len(w)
     # Sample indices of items
-    if group_sizes:
+    if group_sizes is not None:
         bins = grouped_bin_sampler(group_sizes, min_per_group,
                                    num_bins, bin_size)
     else:
@@ -92,14 +92,22 @@ def find_best_bin(v, w, num_bins, bin_size, max_weight,
     # Filter bins that are above the cost limit and find most valuable bin(s)
     value_per_bin = v[bins].sum(axis=1)
     cost_per_bin = w[bins].sum(axis=1)
-    applicable_bin_values = value_per_bin[cost_per_bin <= max_weight]
-    assert applicable_bin_values.shape[0]
+    relevant_summed_bin_values = value_per_bin * (cost_per_bin <= max_weight)
+    assert relevant_summed_bin_values.shape[0]
     if num_best_bins == 1:
-        best_bin_index = applicable_bin_values.argmax()
+        best_bin_index = relevant_summed_bin_values.argmax()
     else:
-        best_bin_index = np.argsort(applicable_bin_values)[-1 * num_best_bins:]
-    best_bin = v[bins][best_bin_index, :]
+        best_bin_index = np.argsort(relevant_summed_bin_values)[-1 * num_best_bins:]
     best_value = value_per_bin[best_bin_index]
+    best_bin = bins[best_bin_index, :]
+    np.testing.assert_array_equal(
+        best_value,
+        relevant_summed_bin_values[relevant_summed_bin_values.argsort()[-1 * num_best_bins:]])
+    np.testing.assert_array_equal(best_value, sorted(best_value))
+    #print sorted(relevant_summed_bin_values)[-10:]
+    #print sorted(value_per_bin[cost_per_bin <= max_weight])[-10:]
+    #print 'argmax', relevant_summed_bin_values[relevant_summed_bin_values.argmax()]
+    #print 'bbsum', best_bin.sum(axis=1)
     #print 'bv', best_value
     #print 'bb', best_bin
     return best_value, best_bin
@@ -131,17 +139,15 @@ if __name__ == '__main__':
 
     v = np.arange(num_items)
     np.random.shuffle(v)
-    w = np.arange(num_items, num_items*2)
+    w = np.arange(num_items, num_items * 2)
     np.random.shuffle(w)
 
     #print '...plot best value for different num_bin values...'
     #find_optimal_num_bins(np.array(range(1, 15)) ** 4,
                           #v=v, w=w, bin_size=bin_size,
                           #max_weight=max_weight)
-
     print '\n...find best bin using num_bins = %s...' % num_bins
     bv, bb = find_best_bin(v, w, num_bins, bin_size, max_weight,
                            num_best_bins=3)
     print 'best value', bv
     print 'best bins', bb
-    print bb.sum(axis=1)
