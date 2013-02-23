@@ -21,20 +21,20 @@ with a lower bound on number of items in the input set.
 import numpy as np
 
 
-def bin_sampler(num_items, num_bins, bin_size, guarantee_unique=True):
-    """Sample indices from the set of items uniformly at random
-    and group the indicies into num_bins, each of bin_size
+def bin_sampler(high, num_bins, bin_size, low=0, guarantee_unique=True):
+    """Sample indices from the set of items indexed from [low, high)
+    uniformly at random and group the indicies into num_bins, each of bin_size
     Guarantee that each bin is a set by default.  If you can disable this,
     the sampler would be much faster..."""
-    assert num_items >= bin_size
+    assert high >= bin_size
     if guarantee_unique:
-        choices = np.arange(num_items)
+        choices = np.arange(low, high)
         bins = np.array([np.random.choice(choices, replace=False, size=bin_size)
                          for _ in xrange(num_bins)])
         #for i in range(num_bins):
             #assert len(np.unique(bins[i, :])) == bin_size
     else:
-        bins = np.random.random_integers(0, num_items - 1,
+        bins = np.random.random_integers(low, high - 1,
                                          size=(num_bins, bin_size))
     return bins
 
@@ -56,7 +56,7 @@ def grouped_bin_sampler(group_sizes, min_per_group, num_bins, bin_size):
     samples = np.empty((num_bins, 0), dtype='int')
     start = 0
     for end in group_sizes:
-        new_samples = bin_sampler(num_items=end - start,
+        new_samples = bin_sampler(high=end - start,
                                   num_bins=num_bins,
                                   bin_size=min_per_group)
         new_samples = new_samples + start
@@ -66,12 +66,12 @@ def grouped_bin_sampler(group_sizes, min_per_group, num_bins, bin_size):
     #print samples
     assert ncols_remaining == abs(ncols_remaining)
     if ncols_remaining > 0:
-        new_samples = bin_sampler(num_items=group_sizes[-1],
+        new_samples = bin_sampler(high=group_sizes[-1],
                                   num_bins=num_bins,
                                   bin_size=ncols_remaining)
         samples = np.concatenate((samples, new_samples), axis=1)
-    #for i in range(len(group_sizes)):
-        #assert (samples[:, :(i + 1) * min_per_group] < group_sizes[i]).all()
+    for i in range(len(group_sizes)):
+        assert (samples[:, :(i + 1) * min_per_group] < group_sizes[i]).all()
     return samples
 
 
