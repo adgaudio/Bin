@@ -72,6 +72,8 @@ def grouped_bin_sampler(group_sizes, min_per_group, num_bins, bin_size):
         samples = np.concatenate((samples, new_samples), axis=1)
     for i in range(len(group_sizes)):
         assert (samples[:, :(i + 1) * min_per_group] < group_sizes[i]).all()
+    # remove duplicates
+    samples = samples[np.apply_along_axis(lambda x: np.unique(x).shape[0], 1, samples) == 8]
     return samples
 
 
@@ -81,32 +83,42 @@ def find_best_bin(v, w, num_bins, bin_size, max_weight,
     Find the bin containing `bin_size-1` items with maximum possible value
     under a max_weight limit
     """
-    num_items = len(v)
+    assert np.unique(zip(v, w)).shape[0] == len(v)
     assert len(v) == len(w)
     # Sample indices of items
     if group_sizes is not None:
         bins = grouped_bin_sampler(group_sizes, min_per_group,
                                    num_bins, bin_size)
     else:
-        bins = bin_sampler(num_items, num_bins, bin_size)
+        bins = bin_sampler(len(v), num_bins, bin_size)
     # Filter bins that are above the cost limit and find most valuable bin(s)
     value_per_bin = v[bins].sum(axis=1)
     cost_per_bin = w[bins].sum(axis=1)
-    relevant_summed_bin_values = value_per_bin * (cost_per_bin <= max_weight)
-    assert relevant_summed_bin_values.shape[0]
+    # fill zeros for bins we dont care about
+    relevant_bins = (value_per_bin * (cost_per_bin <= max_weight))
+    assert relevant_bins.shape[0]  # are there any relevant bins?
+    assert relevant_bins.astype('bool').any()  # are there any relevant bins in this sample?
     if num_best_bins == 1:
-        best_bin_index = relevant_summed_bin_values.argmax()
+        best_bin_index = relevant_bins.argmax()
     else:
-        best_bin_index = np.argsort(relevant_summed_bin_values)[-1 * num_best_bins:]
+        best_bin_index = np.argsort(relevant_bins)[-1 * num_best_bins:]
     best_value = value_per_bin[best_bin_index]
     best_bin = bins[best_bin_index, :]
-    np.testing.assert_array_equal(
-        best_value,
-        relevant_summed_bin_values[relevant_summed_bin_values.argsort()[-1 * num_best_bins:]])
-    np.testing.assert_array_equal(best_value, sorted(best_value))
-    #print sorted(relevant_summed_bin_values)[-10:]
+
+    # test that the indices for value_per_bin and relevant_bins are the same
+    np.testing.assert_array_equal(best_value, relevant_bins[best_bin_index])
+    assert relevant_bins.shape[0] == value_per_bin.shape[0]
+    np.testing.assert_array_equal(  # are both ways for calculating best_value the same?
+        best_value,  # test that value_per_bin is the same as relevant_bins
+        value_per_bin[np.argsort(relevant_bins)[-1 * num_best_bins:]])
+    np.testing.assert_array_equal(best_value, sorted(best_value))  # test that the values are properly sorted
+
+    for bv in best_bin:
+        assert np.unique(bv).shape[0] == bv.shape[0]
+
+    #print sorted(relevant_bins)[-10:]
     #print sorted(value_per_bin[cost_per_bin <= max_weight])[-10:]
-    #print 'argmax', relevant_summed_bin_values[relevant_summed_bin_values.argmax()]
+    #print 'argmax', relevant_bins[relevant_bins.argmax()]
     #print 'bbsum', best_bin.sum(axis=1)
     #print 'bv', best_value
     #print 'bb', best_bin
