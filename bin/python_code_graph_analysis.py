@@ -16,8 +16,8 @@ import os
 import modulefinder
 from os.path import join, abspath
 from IPython import parallel
-from ds_commons import argparse_tools as at
-from ds_commons.log import log
+import argparse as at
+import logging as log
 
 
 def build_graph(lookup):
@@ -51,15 +51,23 @@ def get_related_fps(fp):
             if mod.__file__ or mod.__path__]
 
 
-def main(ns):
-    if ns.parallel:
+def get_map_func(use_parallel):
+    if use_parallel:
         client = parallel.Client()
         pool = client.load_balanced_view()
         imap = pool.imap
-        with client[:].sync_imports():
-            from import_dag import get_related_fps
+
+        def engine_imports():
+            from __file__ import get_related_fps, log
+            get_related_fps, log
+        client[:].apply(engine_imports)
     else:
         imap = map
+    return imap
+
+
+def main(ns):
+    imap = get_map_func(ns.parallel)
     fps = [abspath(join(cwd, fp))
            for cwd, __, fps in os.walk(ns.startdir)
            for fp in fps
@@ -82,88 +90,17 @@ def main(ns):
                         if x.startswith(abspath(ns.startdir)))
     return g, glocal
 
-    #ns.draw(g)
-    ##print g.connected_components
 
-
-build_arg_parser = at.build_arg_parser([
-    at.add_argument('-d', '--startdir', type=str, default='.'),
-    at.add_argument('-p', '--parallel', action='store_true'),
-    at.limit,
-])
+def build_arg_parser():
+    p = at.ArgumentParser()
+    p.add_argument('-d', '--startdir', type=str, default='.'),
+    p.add_argument('-p', '--parallel', action='store_true',
+                   help='Use IPython.parallel and assume an ipcluster is'
+                   'running on localhost'),
+    p.add_argument('-l', '--limit', default=0, type=int)
+    return p
 
 
 if __name__ == '__main__':
     NS = build_arg_parser().parse_args()
     g, glocal = main(NS)
-
-
-"""
-def to_module_str(fp):
-    return basename(fp).rsplit('.')[0]
-
-
-def get_modules(module):
-    modules = set()
-    if not type(module) in [types.ModuleType]:
-        raise Exception('get_modules(module) must receive a types.ModuleType.'
-                        '  Got %s' % type(module))
-    for val in module.__dict__.values():
-        _try_add_module(val, modules)
-    return modules
-
-
-def _try_get_attr(val, *attrs):
-    rv = val
-    for attr in attrs:
-        if isinstance(attr, tuple):
-            rv = _try_get_attr(rv, *attr)
-        else:
-            try:
-                rv = getattr(rv, attr, None)
-            except Exception as err:
-                rv = None
-                log.warning('getattr failed for %s. Error: %s'
-                            % (attrs, err))
-
-    if rv is not None and not (type(rv) in [str, types.ModuleType]):
-        raise Exception("wrong type for %s. wtf?" % attr)
-    return rv
-
-
-def _try_add_module(val, modules):
-    if isinstance(val, types.ModuleType):
-        for attr in ['__package__', '__module__']:
-            vv = _try_get_attr(val, attr)
-            vv and modules.add(vv)
-        if val.__package__ and val.__package__ not in val.__name__:
-            vv = "%s.%s" % (val.__package__, val.__name__)
-        else:
-            vv = val.__name__
-        modules.add(vv)
-    else:
-        for attr in ['__module__', ('__class__', '__module__')]:
-            vv = _try_get_attr(val, attr)
-            vv and modules.add(vv)
-        if hasattr(val, '__package'):
-            raise Exception("non package has __package?!")
-
-
-def recursively_populate_lookup(module, lookup):
-    # Import the module if it's not already loaded
-    try:
-        module = importlib.import_module(module)
-    except:
-        log.warn("Couldn't load module: %s" % module)
-        raise
-
-    try:
-        return lookup[module]
-    except KeyError:
-        pass
-
-    mods = get_modules(module)
-    for mod in mods:
-        recursively_populate_lookup(mod, lookup)
-
-"""
