@@ -1,9 +1,11 @@
+import concurrent
 from functools import wraps, lru_cache
 from geopy.geocoders import Nominatim
 from os.path import exists
 import os
 import pandas as pd
 import requests
+from time import sleep
 
 
 def c(*args):
@@ -106,6 +108,15 @@ def get_dfs(npages):
     return df
 
 
+def retry(ntimes, func, *args, **kwargs):
+    for x in range(ntimes):
+        try:
+            return func(*args, **kwargs)
+        except Exception as err:
+            sleep(2)
+            print("retry", err)
+
+
 def get_lat_lon(df, fp='./data/city_lat_long.csv'):
     """
     get latitude and longitude of each city for given fram
@@ -115,13 +126,24 @@ def get_lat_lon(df, fp='./data/city_lat_long.csv'):
         return pd.read_csv(fp, index_col=0)
     print("... this may take some time")
     geolocator = Nominatim()
-    _lat_lon = {}
-    for city in df['City, State/Country'].unique():
-        l = geolocator.geocode(city)
-        if not l:
-            print("... SKIP", city)
-            continue
-        _lat_lon[city] = l[1]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+        fs = (
+            executor.submit(lambda: (city, retry(5, geolocator.geocode, city)))
+            for city in df['City, State/Country'].unique())
+        _lat_lon = {}
+        for fut in concurrent.futures.as_completed(fs):
+            try:
+                city, loc = fut.result()
+            except Exception as err:
+                print("SKIPPING", fut, err)
+                continue
+            if not loc:
+                print("SKIPPING % due to %s" % (city, "it being unrecognized"))
+                continue
+            if isinstance(loc, Exception):
+                print("SKIPPING % due to %s" % (city, loc))
+                continue
+            _lat_lon[city] = loc[1]
     lat_lon = pd.DataFrame.from_dict(_lat_lon, orient='index')
     lat_lon.columns = ['lat', 'lon']
     lat_lon.index.name = 'City, State/Country'
