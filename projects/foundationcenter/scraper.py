@@ -1,5 +1,5 @@
 import concurrent
-from functools import wraps, lru_cache
+from functools import wraps
 from geopy.geocoders import Nominatim
 from os.path import exists
 import os
@@ -83,7 +83,7 @@ def parse_html_table(resp, pagenum, fp):
     return df
 
 
-def get_dfs(npages):
+def get_dfs(npages=927):
     """
     fetch all pages
     currently between 925 and 930 pages of foundations on the site
@@ -115,6 +115,26 @@ def retry(ntimes, func, *args, **kwargs):
         except Exception as err:
             sleep(2)
             print("retry", err)
+
+
+def get_lat_lon2(df, fp='./data/city_lat_long2.csv'):
+    col = 'City, State/Country'
+    df2 = pd.read_csv(fp)\
+        .groupby(['city', 'state'])\
+        .agg({'latitude': np.mean, 'longitude': np.mean})\
+        .reset_index()
+    df2[col] = df2['city'] + ', ' + df2['state']
+    df2.drop(['city', 'state'], inplace=True, axis=1)
+
+    missing_locations = df[col].DIFFERENCE(df2[col])  # TODO
+    # TODO: look up these locations using geopy
+    df3 = pd.DataFrame()
+    # finally, merge all three sets together
+    df = pd.merge(df, df2, on=col, how='left')
+    df = pd.merge(df, df3, on=col, how='left')
+    return df
+    # df[df['latitude'].isnull()].groupby('City, State/Country').count().max()
+    # (1).order()
 
 
 def get_lat_lon(df, fp='./data/city_lat_long.csv'):
@@ -186,6 +206,6 @@ def plots(df):
             markersize=get_markersize(row[3], min.ix[t], max.ix[t]))
 
 
-df = get_dfs(927)  # 930
-plots(df)
-input('hit enter...')
+# df = get_dfs(927)  # 930
+# plots(df)
+# input('hit enter...')
