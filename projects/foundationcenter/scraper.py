@@ -164,10 +164,10 @@ def receives_future(expand_args=True, raise_on_error=True):
     return _receives_future
 
 
-def get_lat_lon(df, fp='./data/zipcode.csv'):
+def get_lat_lon(df, fp='./data/zipcode.csv.gz'):
     print("get city lat and long")
     col = 'City, State/Country'
-    df2 = pd.read_csv(fp)\
+    df2 = pd.read_csv(fp, compression=fp.endswith('.gz') and 'gzip' or None)\
         .groupby(['city', 'state'])\
         .agg({'latitude': np.mean, 'longitude': np.mean})\
         .reset_index()
@@ -240,6 +240,7 @@ def plots(df):
 
 
 def usmap_plot(series):
+    print("plotting points on map")
     usmap = basemap.Basemap(
         llcrnrlon=-130, llcrnrlat=24, urcrnrlon=-64, urcrnrlat=50)
     usmap.drawcountries(color='gray', linewidth='.6')
@@ -247,12 +248,11 @@ def usmap_plot(series):
     usmap.drawstates()
 
     def get_markersize(x, min_, max_):
-        l = pd.np.log
-        return (x - min_) / (max_ - min_) * (20-5) + 5
-    mmin, mmax = series.min(), series.max()
+        return np.log((x - min_) / (max_ - min_) * (np.e ** 5) + np.e ** 1)
+    mmin, mmax = series.quantile(.001), series.quantile(.999)
     for idx, row in series.reset_index().iterrows():
-        usmap.plot(
-            row['latitude'], row['longitude'], 'bo',
+        plt.plot(
+            row['longitude'], row['latitude'], 'bo',
             markersize=get_markersize(row[series.name], mmin, mmax))
 
 
