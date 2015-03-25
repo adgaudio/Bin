@@ -1,11 +1,16 @@
-import concurrent
+import concurrent.futures
 from functools import wraps
 from geopy.geocoders import Nominatim
 from os.path import exists
 import os
 import pandas as pd
+import numpy as np
 import requests
 from time import sleep
+from types import FunctionType
+
+import pylab as plt
+from mpl_toolkits import basemap
 
 
 def c(*args):
@@ -108,16 +113,59 @@ def get_dfs(npages=927):
     return df
 
 
-def retry(ntimes, func, *args, **kwargs):
-    for x in range(ntimes):
-        try:
-            return func(*args, **kwargs)
-        except Exception as err:
-            sleep(2)
-            print("retry", err)
+def retry(ntimes, delay=2):
+    if ntimes < 0:
+        raise Exception("ntimes must be >= 0")
+    def _retry_decorator(func):
+        @wraps(func)
+        def _func(*args, **kwargs):
+            for x in range(ntimes + 1):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as err:
+                    sleep(delay)
+                    print("retry func due to error:", func, err)
+            raise err
+        return _func
+    return _retry_decorator
 
 
-def get_lat_lon2(df, fp='./data/city_lat_long2.csv'):
+
+def receives_future(expand_args=True, raise_on_error=True):
+    """Wraps a function such that, instead of calling the function(...)
+    directly, expect to receive a Future and then pass the future.result()
+    to the function.
+
+    `expand_args` - If False, the wrapped function expects to receive a Future.
+        If True, expect that the future.result() contains
+        parameters for the wrapped function in one of these forms:
+
+        args_tuple  -->  (1,2)
+        kwargs_dict  -->  {'arg1': 1}
+    """
+    def _receives_future(func):
+        @wraps(func)
+        def _receives_future_decorator(future):
+            rv = future.result()
+            if isinstance(rv, Exception):
+                if raise_on_error:
+                    raise rv
+                else:
+                    print(rv)
+            elif not expand_args:
+                return func(rv)
+            elif isinstance(rv, dict):
+                return func(**rv)
+            elif isinstance(rv, tuple):
+                return func(*rv)
+            else:
+                return func(rv)
+        return _receives_future_decorator
+    return _receives_future
+
+
+def get_lat_lon(df, fp='./data/zipcode.csv'):
+    print("get city lat and long")
     col = 'City, State/Country'
     df2 = pd.read_csv(fp)\
         .groupby(['city', 'state'])\
@@ -125,87 +173,94 @@ def get_lat_lon2(df, fp='./data/city_lat_long2.csv'):
         .reset_index()
     df2[col] = df2['city'] + ', ' + df2['state']
     df2.drop(['city', 'state'], inplace=True, axis=1)
+    missing_locations = np.setdiff1d(df[col].values, df2[col].values)
+    # df3 = get_lat_lon_from_arcGIS(missing_locations)
+    df3 = pd.DataFrame()  # TODO: enable arcGIS
+    df4 = pd.concat([df2, df3])
 
-    missing_locations = df[col].DIFFERENCE(df2[col])  # TODO
-    # TODO: look up these locations using geopy
-    df3 = pd.DataFrame()
     # finally, merge all three sets together
-    df = pd.merge(df, df2, on=col, how='left')
-    df = pd.merge(df, df3, on=col, how='left')
-    return df
-    # df[df['latitude'].isnull()].groupby('City, State/Country').count().max()
-    # (1).order()
+    res = pd.merge(df, df4, on=col, how='left')
+    return res
 
 
-def get_lat_lon(df, fp='./data/city_lat_long.csv'):
+def get_lat_lon_from_arcGIS(cities, nworkers=20):
     """
     get latitude and longitude of each city for given fram
     """
-    print("get city lat and long")
-    if exists(fp):
-        return pd.read_csv(fp, index_col=0)
-    print("... this may take some time")
-    geolocator = Nominatim()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-        fs = (
-            executor.submit(lambda: (city, retry(5, geolocator.geocode, city)))
-            for city in df['City, State/Country'].unique())
-        _lat_lon = {}
-        for fut in concurrent.futures.as_completed(fs):
-            try:
-                city, loc = fut.result()
-            except Exception as err:
-                print("SKIPPING", fut, err)
-                continue
-            if not loc:
-                print("SKIPPING % due to %s" % (city, "it being unrecognized"))
-                continue
-            if isinstance(loc, Exception):
-                print("SKIPPING % due to %s" % (city, loc))
-                continue
-            _lat_lon[city] = loc[1]
-    lat_lon = pd.DataFrame.from_dict(_lat_lon, orient='index')
-    lat_lon.columns = ['lat', 'lon']
-    lat_lon.index.name = 'City, State/Country'
-    lat_lon.to_csv(fp)
+    print("get city lat and long from arcGIS")
+    # if len(cities) > 1000:
+        # raise Exception(
+            # "Can only fetch up to 1000 lat/long per day from arcGIS")
+    nominatum = Nominatim()
+
+    @retry(5)
+    def geocoder(nominatum, city):
+        notfound = {
+            'City, State/Country': city, 'latitude': None, 'longitude': None}
+        loc = nominatum.geocode(city)
+        if not loc:
+            print("SKIPPING %s due to %s" % (city, "it being unrecognized"))
+            return notfound
+        elif isinstance(loc, Exception):
+            print("SKIPPING %s due to %s" % (city, loc))
+            return notfound
+        else:
+            return {'City, State/Country': city,
+                    'latitude': loc[1][0],
+                    'longitude': loc[1][1]}
+
+    _lat_lon = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=nworkers) as executor:
+        for city in cities:
+            executor\
+                .submit(geocoder, nominatum, city)\
+                .add_done_callback(receives_future(False)(_lat_lon.append))
+
+    lat_lon = pd.DataFrame(_lat_lon)
     return lat_lon
 
 
 def plots(df):
-    import pylab as plt
-    from mpl_toolkits import basemap
-
     print("plot things")
 
     plt.ion()
 
     # total giving vs total assets
-    df.dropna().plot(kind='scatter', x='Total Assets.log', y='Total Giving.log')
-    plt.figure()
+    # df.dropna().plot(kind='scatter', x='Total Assets.log', y='Total Giving.log')
+    # plt.figure()
 
     # plot each city on a map
+    agg_by_city = df\
+        .groupby(['City, State/Country', 'latitude', 'longitude'])\
+        ['Total Giving']\
+        .agg(
+            {'Total Giving ($)': lambda x: x.sum(),
+             'Total Giving (num grants)': lambda x: x.count()})
+    usmap_plot(agg_by_city['Total Giving ($)'])
+
+
+def usmap_plot(series):
     usmap = basemap.Basemap(
         llcrnrlon=-130, llcrnrlat=24, urcrnrlon=-64, urcrnrlat=50)
     usmap.drawcountries(color='gray', linewidth='.6')
     usmap.drawcoastlines(color='gray')
     usmap.drawstates()
-    agg_by_city = get_lat_lon(df).join(
-        df.groupby('City, State/Country')['Total Giving'].agg(
-            {'Total Giving ($)': lambda x: x.sum(),
-             'Total Giving (num grants)': lambda x: x.count()}))
 
-    def get_markersize(x, min, max):
+    def get_markersize(x, min_, max_):
         l = pd.np.log
-        return (l(x) - l(min)) / (l(max) - l(min)) * (20-5) + 5
-    min, max = agg_by_city.min(), agg_by_city.max()
-    for row in agg_by_city.itertuples():
-        t = 'Total Giving ($)'
-        # t = 'Total Giving (num grants)'
+        return (x - min_) / (max_ - min_) * (20-5) + 5
+    mmin, mmax = series.min(), series.max()
+    for idx, row in series.reset_index().iterrows():
         usmap.plot(
-            row[2], row[1], 'bo',
-            markersize=get_markersize(row[3], min.ix[t], max.ix[t]))
+            row['latitude'], row['longitude'], 'bo',
+            markersize=get_markersize(row[series.name], mmin, mmax))
 
 
-# df = get_dfs(927)  # 930
-# plots(df)
-# input('hit enter...')
+if __name__ == "__main__":
+    df = c(
+        927,  # 930
+        get_dfs,
+        get_lat_lon
+    )
+    plots(df)
+    input('hit enter...')
