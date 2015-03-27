@@ -248,7 +248,7 @@ def usmap_plot(series):
     usmap.drawstates()
 
     def get_markersize(x, min_, max_):
-        return np.log((x - min_) / (max_ - min_) * (np.e ** 5) + np.e ** 1)
+        return np.log((x - min_) / (max_ - min_) * (np.e ** 10) + np.e ** 1)
     mmin, mmax = series.quantile(.001), series.quantile(.999)
     for idx, row in series.reset_index().iterrows():
         plt.plot(
