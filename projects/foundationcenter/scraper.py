@@ -226,8 +226,18 @@ def plots(df):
     plt.ion()
 
     # total giving vs total assets
-    # df.dropna().plot(kind='scatter', x='Total Assets.log', y='Total Giving.log')
+    df.dropna().plot(
+        kind='scatter', x='Total Assets.log', y='Total Giving.log', alpha=.1)
     # plt.figure()
+
+    # total giving
+    plt.figure()
+    plt.title('Total Giving.log')
+    df['Total Giving.log'][df['Total Giving'] > 0].hist(bins=10000)
+    # total assets
+    plt.figure()
+    plt.title('Total Assets.log')
+    df['Total Assets.log'][df['Total Assets'] > 0].hist(bins=1000)
 
     # plot each city on a map
     agg_by_city = df\
