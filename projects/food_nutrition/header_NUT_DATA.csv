@@ -1,0 +1,19 @@
+Field Name,Blank,Description,Type
+NDB_No,N,5-digit Nutrient Databank number,A 5*
+Nutr_No,N,Unique 3-digit identifier code for a nutrient,A 3*
+Nutr_Val,N,"Amount in 100 grams, edible portion †",N 10.3
+Num_Data_Pts,N,"Number of data points (previously called Sample_Ct) is the number of analyses used to calculate the nutrient value. If the number of data points is 0, the value was calculated or imputed",N 5.0
+Std_Error,Y,Standard error of the mean. Null if cannot be calculated. The standard error is also not given if the number of data points is less than three,N 8.3
+Src_Cd,N,Code indicating type of data,A 2
+Deriv_Cd,Y,Data Derivation Code giving specific information on how the value is determined. This field is populated only for items added or updated starting with SR14,A 4
+Ref_NDB_No,Y,NDB number of the item used to calculate a missing value. Populated only for items added or updated starting with SR14,A 5
+Add_Nutr_Mark,Y,Indicates a vitamin or mineral added for fortification or enrichment. This field is populated for ready-to- eat breakfast cereals and many brand-name hot cereals in food group 8,A 1
+Num_Studies,Y,Number of studies,N 2
+Min,Y,Minimum value,N 10.3
+Max,Y,Maximum value,N 10.3
+DF,Y,Degrees of freedom,N 4
+Low_EB,Y,Lower 95% error bound,N 10.3
+Up_EB,Y,Upper 95% error bound,N 10.3
+Stat_cmt,Y,Statistical comments. See definitions below,A 10
+AddMod_Date,Indicates,when a value was either added to the database or last modified,A10 Y
+CC,Y,"Confidence Code indicating data quality, based on evaluation of sample plan, sample handling, analytical method, analytical quality control, and number of samples analyzed. Not included in this release, but is planned for future releases",A 1
