@@ -2,3 +2,5 @@
 \#*\#
 *~
 .ropeproject
+data/
+__pycache__/
