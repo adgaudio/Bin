@@ -22,3 +22,16 @@ good_foods = good_foods.join(food_des['Long_Desc'])
 
 good_foods.head()
 good_foods['Long_Desc'].value_counts()
+
+z = good_foods['NutrDesc'].value_counts()
+uncommon_nutrients = z[z <= z.quantile(.99)]
+common_nutrients = z[z > z.quantile(.99)]
+print("dropping", common_nutrients)
+print("keeping")
+z2 = good_foods.ix[good_foods['NutrDesc'].isin(uncommon_nutrients.index)]
+print(z2['Long_Desc'].value_counts())
+
+# For each nutrient, the mean and std grow at same rate
+# zz = df.groupby(level='Nutr_No', group_keys=False)\
+    # .apply(lambda x: x['Nutr_Val'].describe())
+# zz.plot(kind='scatter', x='mean', y='std', logx=True, logy=True)
